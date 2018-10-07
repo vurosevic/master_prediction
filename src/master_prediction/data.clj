@@ -116,23 +116,26 @@ master-prediction.data
   [input-matrix]
   (let [rows-count (mrows input-matrix)
         cols-count (ncols input-matrix)
-        norm-matrix (dge rows-count cols-count)             ;; create null matrix
+        input-matrix-b (submatrix input-matrix 0 0 (dec rows-count) cols-count)
+
+        norm-matrix (dge rows-count cols-count (repeat 1))             ;; create null matrix
+        norm-matrix-b (submatrix norm-matrix 0 0 (dec rows-count) cols-count) ;; create null matrix
         coef-matrix (dge rows-count 2)
         ]
 
     (do
-      (doseq [x (range (mrows input-matrix))]
-        (let [min-value (get-min-value (row input-matrix x))
-              max-value (get-max-value (row input-matrix x))
+      (doseq [x (range (mrows input-matrix-b))]
+        (let [min-value (get-min-value (row input-matrix-b x))
+              max-value (get-max-value (row input-matrix-b x))
               row-coef  (row coef-matrix x)
               ]
           (do
             (entry! row-coef 0 min-value)
             (entry! row-coef 1 max-value)
-            (normalize-vector (row input-matrix x)
+            (normalize-vector (row input-matrix-b x)
                               min-value
                               max-value
-                              (row norm-matrix x))
+                              (row norm-matrix-b x))
             )
           )
         )
@@ -167,14 +170,28 @@ master-prediction.data
 (def input-730 (submatrix input-matrix-all 0 0 64 1852))
 (def target-730 (submatrix target-matrix-all 0 0 1 1852))
 
+;;append 1 row for biases inputs
+(def input-730-b (dge 65 1852 (repeat 1)))
+(copy! input-730 (submatrix input-730-b 0 0 64 1852))
+
+
 (def test-input-310 (submatrix input-matrix-all 0 1854 64 793))
 (def test-target-310 (submatrix target-matrix-all 0 1854 1 793))
 
-(def norm-input-730 (create-norm-matrix input-730))
+;;append 1 row for biases inputs
+(def test-input-310-b (dge 65 793 (repeat 1)))
+(copy! test-input-310 (submatrix test-input-310-b 0 0 64 793))
+
+
+;; normalized data
+;; training
+(def norm-input-730 (create-norm-matrix input-730-b))
 (def norm-target-730 (create-norm-matrix target-730))
 
-(def test-norm-input-310 (create-norm-matrix test-input-310))
+;; test
+(def test-norm-input-310 (create-norm-matrix test-input-310-b))
 (def test-norm-target-310 (create-norm-matrix test-target-310))
+
 
 (native! norm-input-730)
 (native! norm-target-730)
