@@ -95,11 +95,11 @@ master-prediction.data
 (defn normalize-vector
   [input-vector input-min input-max result-vector]
 
-  (let [temp-min-vec (dv (repeat (dim input-vector) input-min)) ;; (/ input-min 0.9)
-        temp-max-vec (dv (repeat (dim input-vector) input-max)) ;; (/ input-max 1.1)
-        temp-maxmin  (dv (repeat (dim input-vector) input-max)) ;; (/ input-max 1.1)
-        temp-result  (dv (repeat (dim result-vector) 0))
-        temp-result2  (dv (repeat (dim result-vector) 0))
+  (let [temp-min-vec (fv (repeat (dim input-vector) input-min)) ;; (/ input-min 0.9)
+        temp-max-vec (fv (repeat (dim input-vector) input-max)) ;; (/ input-max 1.1)
+        temp-maxmin  (fv (repeat (dim input-vector) input-max)) ;; (/ input-max 1.1)
+        temp-result  (fv (repeat (dim result-vector) 0))
+        temp-result2  (fv (repeat (dim result-vector) 0))
         ]
 
     (do
@@ -118,9 +118,9 @@ master-prediction.data
         cols-count (ncols input-matrix)
         input-matrix-b (submatrix input-matrix 0 0 (dec rows-count) cols-count)
 
-        norm-matrix (dge rows-count cols-count (repeat 1))             ;; create null matrix
+        norm-matrix (fge rows-count cols-count (repeat 1))             ;; create null matrix
         norm-matrix-b (submatrix norm-matrix 0 0 (dec rows-count) cols-count) ;; create null matrix
-        coef-matrix (dge rows-count 2)
+        coef-matrix (fge rows-count 2)
         ]
 
     (do
@@ -147,31 +147,60 @@ master-prediction.data
     )
   )
 
+(defn create-norm-matrix-target
+  [input-matrix]
+  (let [rows-count (mrows input-matrix)
+        cols-count (ncols input-matrix)
+        norm-matrix (fge rows-count cols-count)             ;; create null matrix
+        coef-matrix (fge rows-count 2)]
+    (do
+      (doseq [x (range (mrows input-matrix))]
+        (let [min-value (get-min-value (row input-matrix x))
+              max-value (get-max-value (row input-matrix x))
+              row-coef  (row coef-matrix x)
+              ]
+          (do
+            (entry! row-coef 0 min-value)
+            (entry! row-coef 1 max-value)
+            (normalize-vector (row input-matrix x)
+                              min-value
+                              max-value
+                              (row norm-matrix x))
+            )
+          )
+        )
+
+      (->Normalizedmatrix
+        norm-matrix
+        coef-matrix
+        ))
+    )
+  )
+
 (defn restore-output-vector
   "Restoring output vector"
   [normalized-record norm-matrix row-no]
   (let [coef (:restore-coeficients normalized-record)
-        norm-vector (row norm-matrix row-no)
+        norm-vector (copy (row norm-matrix row-no))
         min-value (entry (row coef row-no) 0)
         max-value (entry (row coef row-no) 1)
         maxmin-value (- max-value min-value)
-        maxmin-vector (dv (repeat (dim norm-vector) maxmin-value))
-        min-vector (dv (repeat (dim norm-vector) min-value))
-        ]
+        maxmin-vector (fv (repeat (dim norm-vector) maxmin-value))
+        min-vector (fv (repeat (dim norm-vector) min-value))]
 
     (axpy! min-vector (mul norm-vector maxmin-vector))
     )
   )
 
 ;; matrix with new data
-(def input-matrix-all (dge 64 2647 (reduce into [] (map :x (read-data-from-csv "resources/data_prediction.csv")))))
-(def target-matrix-all (dge 1 2647 (reduce conj [] (map :y (read-data-from-csv "resources/data_prediction.csv")))))
+(def input-matrix-all (fge 64 2647 (reduce into [] (map :x (read-data-from-csv "resources/data_prediction.csv")))))
+(def target-matrix-all (fge 1 2647 (reduce conj [] (map :y (read-data-from-csv "resources/data_prediction.csv")))))
 
 (def input-730 (submatrix input-matrix-all 0 0 64 1852))
 (def target-730 (submatrix target-matrix-all 0 0 1 1852))
 
 ;;append 1 row for biases inputs
-(def input-730-b (dge 65 1852 (repeat 1)))
+(def input-730-b (fge 65 1852 (repeat 1)))
 (copy! input-730 (submatrix input-730-b 0 0 64 1852))
 
 
@@ -179,18 +208,18 @@ master-prediction.data
 (def test-target-310 (submatrix target-matrix-all 0 1854 1 793))
 
 ;;append 1 row for biases inputs
-(def test-input-310-b (dge 65 793 (repeat 1)))
+(def test-input-310-b (fge 65 793 (repeat 1)))
 (copy! test-input-310 (submatrix test-input-310-b 0 0 64 793))
 
 
 ;; normalized data
 ;; training
 (def norm-input-730 (create-norm-matrix input-730-b))
-(def norm-target-730 (create-norm-matrix target-730))
+(def norm-target-730 (create-norm-matrix-target target-730))
 
 ;; test
 (def test-norm-input-310 (create-norm-matrix test-input-310-b))
-(def test-norm-target-310 (create-norm-matrix test-target-310))
+(def test-norm-target-310 (create-norm-matrix-target test-target-310))
 
 
 (native! norm-input-730)
