@@ -36,46 +36,24 @@ master-prediction.data
     (write-file filename
                 (str (string/join ""
                                   (drop-last
-                                    (reduce str (map str (conj (vec (:tmp1 network)) (last (:tmp2 network)))
-                                                     (replicate (count (conj (vec (:tmp1 network)) (last (:tmp2 network)))) ","))))) "\n")
-                )
+                                    (reduce str (map str (:config network)
+                                            (replicate (count (:config network)) ",")) ))) "\n"))
 
-    (write-file filename "BIASES\n")
-    (doall
-
-      (doseq [y (range (count (:biases network)))]
-        (write-file filename (str "BIAS," (inc y) "\n"))
-        (doseq [x (range (mrows (nth (:biases network) y)))]
-          (write-file filename
-                      (str (string/join ""
-                                        (drop-last
-                                          (reduce str (map str (row (nth (:biases network) y) x)
-                                                           (replicate (ncols (nth (:biases network) y)) ","))))) "\n"))))
-      )
 
     (write-file filename "LAYERS\n")
     (doall
 
-      (doseq [y (range (count (:hidden-layers network)))]
+      (doseq [y (range (count (:layers network)))]
         (write-file filename (str "LAYER," (inc y) "\n"))
-        (doseq [x (range (mrows (nth (:hidden-layers network) y)))]
+        (doseq [x (range (mrows (nth (:layers network) y)))]
           (write-file filename
                       (str (string/join ""
                                         (drop-last
-                                          (reduce str (map str (row (nth (:hidden-layers network) y) x)
-                                                           (replicate (ncols (nth (:hidden-layers network) y)) ","))))) "\n"))))
+                                          (reduce str (map str (row (nth (:layers network) y) x)
+                                                      (replicate (ncols (nth (:layers network) y)) ","))))) "\n"))))
       )
 
-    (write-file filename "OUTPUT\n")
-    (doall
-      (for [x (range (mrows (:output-layer network)))]
-        (write-file filename
-                    (str (string/join ""
-                                      (drop-last
-                                        (reduce str (map str (row (:output-layer network) x)
-                                                         (replicate (ncols (:output-layer network)) ","))))) "\n"))))
-    (write-file filename "END\n")
-    ))
+    (write-file filename "END\n")))
 
 
 (defn get-max-value
