@@ -155,6 +155,29 @@ master-prediction.data
     )
   )
 
+(defn normalize-input-vector
+  "normalize input vector"
+  [input-vec norm-input-vector output-norm-vector]
+  (let [input (fge (count input-vec) 1 input-vec)
+        coeficients (:restore-coeficients norm-input-vector)
+        dim-coef (mrows (:restore-coeficients norm-input-vector))
+        output-norm-vector (fge (mrows input) (ncols input) (repeat (* (mrows input) (ncols input)) 1))]
+    (if (= (mrows input) dim-coef)
+      (doseq [x (range (dec dim-coef))]
+        (let [val-max (entry (row coeficients x) 1)
+              val-min (entry (row coeficients x) 0)
+              val-maxmin (- val-max val-min)
+              val-input (entry (col input 0) x)
+              val-norm  (/ (- val-input val-min) val-maxmin)]
+          (entry! (col output-norm-vector 0) x val-norm)
+         )
+       )
+      (throw (Exception. (str "Error: Input vector does not match the norm input vector."))))
+
+      (-> output-norm-vector)
+    )
+  )
+
 (defn restore-output-vector
   "Restoring output vector"
   [normalized-record norm-matrix row-no]
@@ -199,10 +222,14 @@ master-prediction.data
 (def test-norm-input-310 (create-norm-matrix test-input-310-b))
 (def test-norm-target-310 (create-norm-matrix-target test-target-310))
 
+;; prepare normalized data
 
-(native! norm-input-730)
-(native! norm-target-730)
-(native! test-norm-input-310)
-(native! test-norm-target-310)
+;; normalizovati sve podatke, pa zatim uzeti deo za obuku 70% i deo za test 30%
+;;
+
+(def norm-input-all (create-norm-matrix input-matrix-all))
+(def norm-target-all (create-norm-matrix target-matrix-all))
+
+
 
 
