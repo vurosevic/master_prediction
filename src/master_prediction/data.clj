@@ -227,9 +227,46 @@ master-prediction.data
 ;; normalizovati sve podatke, pa zatim uzeti deo za obuku 70% i deo za test 30%
 ;;
 
-(def norm-input-all (create-norm-matrix input-matrix-all))
-(def norm-target-all (create-norm-matrix target-matrix-all))
 
+(def input-all-b (fge 65 2647 (repeat 1)))
+(copy! input-matrix-all (submatrix input-all-b 0 0 64 2647))
 
+(def norm-input-all (create-norm-matrix input-all-b))
+(def norm-target-all (create-norm-matrix-target target-matrix-all))
 
+(ncols (:normalized-matrix norm-input-all))
 
+(defn get-training-dataset
+  "take training dataset by begining"
+  [input-data percent]
+  (let [max-num-rows (ncols (:normalized-matrix input-data))
+        num-cols (mrows (:normalized-matrix input-data))
+        num-rows (* (/ max-num-rows 100) percent)
+        coeficients (:restore-coeficients input-data)
+        norm-data (submatrix (:normalized-matrix input-data) 0 0 num-cols num-rows)
+        ]
+    (->Normalizedmatrix
+      norm-data
+      coeficients)))
+
+(defn get-test-dataset
+  "take test dataset from the end"
+  [input-data percent]
+  (let [max-num-rows (ncols (:normalized-matrix input-data))
+        num-rows (* (/ max-num-rows 100) (- 100 percent))
+        num-cols (mrows (:normalized-matrix input-data))
+        coeficients (:restore-coeficients input-data)
+        norm-data (submatrix (:normalized-matrix input-data) 0 num-rows num-cols (- max-num-rows num-rows))
+        ]
+    (->Normalizedmatrix
+      norm-data
+      coeficients)))
+
+(-> norm-input-all)
+(-> norm-target-all)
+
+(get-training-dataset norm-input-all 70)
+(get-test-dataset norm-input-all 30)
+
+(get-training-dataset norm-target-all 70)
+(get-test-dataset norm-target-all 30)
