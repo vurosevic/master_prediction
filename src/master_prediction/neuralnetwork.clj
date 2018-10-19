@@ -386,7 +386,7 @@ master-prediction.neuralnetwork
   "train network with input/target vectors"
   [network input-mtx target-mtx iteration-count temp-vars speed-learning alpha]
   (let [line-count (dec (ncols input-mtx))
-        temp-vars2 (create-temp-record network (:normalized-matrix test-norm-input-310))
+        temp-vars2 (create-temp-record network (:normalized-matrix input-test-dataset))
         ]
     (str
       (doseq [y (range iteration-count)]
@@ -395,10 +395,19 @@ master-prediction.neuralnetwork
           )
         (let [os (mod y 10)]
         (if (= os 0)
-        (let [mape-value (evaluate-original-mape
-            (evaluate-original (restore-output-vector test-norm-target-310 (predict network (:normalized-matrix test-norm-input-310) temp-vars2) 0)
-                                   (restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)
-                ))]
+          (let [mape-value
+
+                ;; (evaluate-original-mape
+                ;; (evaluate-original (restore-output-vector test-norm-target-310 (predict network (:normalized-matrix test-norm-input-310) temp-vars2) 0)
+                ;;                       (restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)))
+
+                (evaluate-original-mape
+                  (evaluate-original
+                    (restore-output-vector target-test-dataset (predict network (:normalized-matrix input-test-dataset) temp-vars2) 0)
+                    (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+                    ))
+
+              ]
                 (do
                   (println y ": " mape-value)
                   (println "---------------------")

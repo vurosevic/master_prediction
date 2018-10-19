@@ -151,3 +151,25 @@ master-prediction.example
 (:normalized-matrix test-norm-input-310)
 
 (:restore-coeficients norm-input-730)
+
+;;
+(def mreza-nn (atom (create-network-gaussian 64 [80 80 80] 1)))
+(xavier-initialization-update @mreza-nn)
+(set-biases-to-one @mreza-nn 0)
+
+(def input-row-test (submatrix (:normalized-matrix input-trainig-dataset) 0 0 (inc (first (:config @mreza-nn))) 1))
+(def temp-variables2 (atom (create-temp-record @mreza-nn input-row-test)))
+
+(def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
+
+(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset) (:normalized-matrix target-trainig-dataset) 500
+                     @temp-variables2 0.00137 0.9))
+
+
+(evaluate-original-mape
+  (evaluate-original
+    (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
+    (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+    ))
+
+(predict @mreza-nn (:normalized-matrix input-test-dataset) (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset)))

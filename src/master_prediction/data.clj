@@ -265,8 +265,8 @@ master-prediction.data
 (-> norm-input-all)
 (-> norm-target-all)
 
-(get-training-dataset norm-input-all 70)
-(get-test-dataset norm-input-all 30)
+(def input-trainig-dataset (get-training-dataset norm-input-all 70))
+(def input-test-dataset (get-test-dataset norm-input-all 30))
 
-(get-training-dataset norm-target-all 70)
-(get-test-dataset norm-target-all 30)
+(def target-trainig-dataset (get-training-dataset norm-target-all 70))
+(def target-test-dataset (get-test-dataset norm-target-all 30))
