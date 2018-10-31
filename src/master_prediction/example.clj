@@ -95,9 +95,9 @@ master-prediction.example
 (:restore-coeficients norm-input-730)
 
 ;; snimanje i ucitavanje konfiguracije
-(save-network-to-file @mreza-nn "nn-mreza-136.csv")
+(save-network-to-file @mreza-nn "nn-mreza-141.csv")
 
-(def mreza-tn (atom (create-network-from-file "nn-mreza-149.csv")))
+(def mreza-nn (atom (create-network-from-file "nn-mreza-141.csv")))
 (-> @mreza-tn)
 (-> @mreza-nn)
 
@@ -162,9 +162,9 @@ master-prediction.example
 
 (def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
 
-(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset) (:normalized-matrix target-trainig-dataset) 500
-                     @temp-variables2 0.00137 0.9))
-
+(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
+                               (:normalized-matrix target-trainig-dataset) 50
+                               @temp-variables2 0.001087 0.9))
 
 (evaluate-original-mape
   (evaluate-original
@@ -173,3 +173,7 @@ master-prediction.example
     ))
 
 (predict @mreza-nn (:normalized-matrix input-test-dataset) (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset)))
+
+(feed-forward @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
+(:layers-output @temp-variables3)
+(:layers-output-only @temp-variables3)

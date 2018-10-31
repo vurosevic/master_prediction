@@ -382,6 +382,13 @@ master-prediction.neuralnetwork
   (* (/ (sum error-vec) (dim error-vec)) 100)
   )
 
+(defn learning-rate
+  "learninig rate decay algorithm"
+  [start-speed-learning decay-rate epoch-num]
+  ;;(/ start-speed-learning (+ 1 (* decay-rate epoch-num)))
+  (* start-speed-learning (Math/pow 0.95 epoch-num))
+  )
+
 (defn train-network
   "train network with input/target vectors"
   [network input-mtx target-mtx iteration-count temp-vars speed-learning alpha]
@@ -392,6 +399,7 @@ master-prediction.neuralnetwork
       (doseq [y (range iteration-count)]
         (doseq [x (range line-count)]
           (backpropagation network input-mtx x target-mtx temp-vars speed-learning alpha)
+          ;;(backpropagation network input-mtx x target-mtx temp-vars (learning-rate speed-learning 0.002 y) alpha)
           )
         (let [os (mod y 10)]
         (if (= os 0)
