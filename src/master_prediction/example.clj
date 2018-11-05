@@ -164,7 +164,7 @@ master-prediction.example
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
                                (:normalized-matrix target-trainig-dataset) 50 1
-                               @temp-variables2 0.0175577 0.9))
+                               @temp-variables2 0.017557 0.9))
 
 (evaluate-original-mape
   (evaluate-original

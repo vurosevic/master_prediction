@@ -554,7 +554,7 @@ master-prediction.neuralnetwork
             (do
               (println y ": " mape-value)
               (println "---------------------")
-              (write-file "mini_batch_015.csv" (str y "," mape-value "\n"))
+              (write-file "mini_batch_016.csv" (str y "," mape-value "\n"))
 
               ))))
       )))
