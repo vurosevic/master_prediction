@@ -163,8 +163,8 @@ master-prediction.example
 (def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 50
-                               @temp-variables2 0.001087 0.9))
+                               (:normalized-matrix target-trainig-dataset) 50 1
+                               @temp-variables2 0.0175577 0.9))
 
 (evaluate-original-mape
   (evaluate-original
@@ -172,8 +172,136 @@ master-prediction.example
     (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
     ))
 
+(def nn (evaluate-original
+          (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
+          (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+          ))
+
 (predict @mreza-nn (:normalized-matrix input-test-dataset) (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset)))
 
 (feed-forward @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
 (:layers-output @temp-variables3)
-(:layers-output-only @temp-variables3)
+(:temp-all-vector-o-gradients @temp-variables2)
+(:temp-all-vector-o-gradients2 @temp-variables2)
+(:temp-all-vector-vector-h-gradients @temp-variables2)
+(:temp-vector-vector-h-gradients @temp-variables2)
+
+(entry (row (last (:temp-all-vector-vector-h-gradients @temp-variables2)) 0) 0)
+(last (:temp-all-vector-vector-h-gradients @temp-variables2))
+
+(def temp-variables2 (atom (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset))))
+(backpropagation @mreza-nn (:normalized-matrix input-trainig-dataset) 4 (:normalized-matrix target-trainig-dataset)
+                 @temp-variables2 0.015 0.4)
+
+
+(quick-bench
+  (backpropagation @mreza-nn (:normalized-matrix input-trainig-dataset) 4 (:normalized-matrix target-trainig-dataset)
+                   @temp-variables2 0.015 0.4)
+  )
+
+
+(ncols (:normalized-matrix input-test-dataset))
+
+(def tes (fge 3 3 [1 1 2 2 3 3 4 4 5 5 6 6]))
+(-> tes)
+
+(defn fill-vector
+  [result-vector source]
+    (copy! (fv source) (col result-vector 0))
+  )
+
+(defn fill-gradient-vector
+  [input-vector result-vector]
+  (let [count-vec (mrows input-vector)
+        sum-list (map sum (map #(row input-vector %) (range (mrows input-vector))))]
+    (doseq [x (range count-vec)]
+      (entry! (col result-vector 0) x (nth sum-list x)))
+    )
+  )
+
+(def tes (first (:temp-all-vector-vector-h-gradients @temp-variables2)))
+(map sum (map #(row tes %) (range (mrows tes))))
+
+(-> tes)
+
+(:temp-vector-o-gradients @temp-variables2)
+(first (:temp-vector-vector-h-gradients @temp-variables2))
+
+(map sum (map #(row tes %) (range (mrows tes))))
+
+(map #(entry! (:temp-vector-o-gradients @temp-variables2) %) (map sum (map #(row tes %) (range (mrows tes)))))
+
+(map #(entry! (last (:temp-vector-vector-h-gradients @temp-variables2)) %) (map sum (map #(row tes %) (range (mrows tes)))))
+
+
+(fill-vector (last (:temp-vector-vector-h-gradients @temp-variables2)) (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
+
+(quick-bench (fill-vector (first (:temp-vector-vector-h-gradients @temp-variables2)) (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes)))))))
+
+(fill-gradient-vector tes (first (:temp-vector-vector-h-gradients @temp-variables2)))
+
+(with-progress-reporting
+  (quick-bench (fill-gradient-vector tes (first (:temp-vector-vector-h-gradients @temp-variables2))))
+  )
+
+(-> tes)
+(def jed (fge 1852 1 (repeat 1)))
+(mm tes jed)
+(nth (:temp-vector-vector-h-gradients @temp-variables2) 3)
+
+(entry (col (first (:temp-vector-vector-h-gradients @temp-variables2)) 0) 3)
+
+(mm! 1 tes jed 0 (first (:temp-vector-vector-h-gradients @temp-variables2)))
+(scal! (/ 1 (ncols tes)) (first (:temp-vector-vector-h-gradients @temp-variables2)))
+
+(quick-bench (mm! 1 tes jed 0 (first (:temp-vector-vector-h-gradients @temp-variables2))))
+
+(quick-bench (mm tes jed))
+
+
+(quick-bench (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
+
+(map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes)))))
+
+(count (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
+
+(dv (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
+
+(quick-bench (dv (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes)))))))
+
+(submatrix unit-matrix 0 0 80 1)
+(:layers-output @temp-variables2)
+(nth (:layers-output-only @temp-variables2) 0)
+(def tes1 (nth (:layers-output-only @temp-variables2) 0))
+
+(map #(/ % (ncols tes1)) (map sum (map #(row tes1 %) (range (mrows tes1)))))
+(count (map #(/ % (ncols tes1)) (map sum (map #(row tes1 %) (range (mrows tes1))))))
+
+(for [x (range 0 1852 60)
+      y (range 60 1852 60)]
+  (str x ":" y)
+  )
+
+(conj (map #(vector %1 %2) (range 0 1852 60) (range 60 1852 60))
+      [(reduce max (range 0 1852 60)) 1852])
+
+(def seg-ts (conj (map #(vector %1 %2) (range 0 1852 60) (range 60 1852 60))
+                  [(reduce max (range 0 1852 60)) 1852]))
+
+(count (-> seg-ts))
+(for [x (range (count (-> seg-ts)))]
+  (str (nth seg-ts x))
+  )
+
+(reduce max (range 0 1852 60))
+
+(map #(vector %1 %2) (range 0 1852 60) (range 60 1852 60))
+
+(:normalized-matrix input-trainig-dataset)
+
+(submatrix (:normalized-matrix input-trainig-dataset)
+           0 1 65 3)
+
+(doseq [y (range 150)]
+  (println y)
+        )

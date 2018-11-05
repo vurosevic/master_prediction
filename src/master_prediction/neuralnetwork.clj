@@ -13,9 +13,12 @@ master-prediction.neuralnetwork
 
                          trans-weights              ;; trans weights matrixes
 
+                         temp-all-vector-o-gradients             ;; matrix, row=1, output gradient, dim number of output neurons
+                         temp-all-vector-o-gradients2            ;; matrix, row=1, output gradient, dim number of output neurons
+                         temp-all-vector-vector-h-gradients      ;; output gradient, dim number of output neurons
+
                          temp-vector-o-gradients             ;; matrix, row=1, output gradient, dim number of output neurons
                          temp-vector-o-gradients2            ;; matrix, row=1, output gradient, dim number of output neurons
-
                          temp-vector-vector-h-gradients      ;; output gradient, dim number of output neurons
 
                          temp-vector-matrix-delta            ;; delta weights for layers
@@ -169,15 +172,19 @@ master-prediction.neuralnetwork
 (defn create-temp-record
   "create temp record for calculations"
   [network input-mtx]
-  (let [input-vec-dim (mrows input-mtx)
+  (let [input-vec-dim (ncols input-mtx)
         net-input-dim (first (:config network))
         net-output-dim (last (:config network))
         tmp1 (take (dec (count (:config network))) (:config network))
         tmp2 (take-last (dec (count (:config network))) (:config network))
         layers-output (for [x tmp2]
-                      (conj (#(create-null-matrix (inc x) (ncols input-mtx) ))))
+                      (conj (#(create-null-matrix (inc x) input-vec-dim ))))
         layers-output-only (vec (map #(get-output-matrix %) layers-output))
         trans-weights (vec (map #(trans (get-weights-matrix %)) (:layers network)))
+
+        temp-all-vector-o-gradients  (fge net-output-dim input-vec-dim (repeat net-output-dim 0))
+        temp-all-vector-o-gradients2 (fge net-output-dim input-vec-dim (repeat net-output-dim 0))
+        temp-all-vector-vector-h-gradients (vec (for [x tmp2] (fge x input-vec-dim (repeat x 0))))
 
         temp-vector-o-gradients  (fge net-output-dim 1 (repeat net-output-dim 0))
         temp-vector-o-gradients2 (fge net-output-dim 1 (repeat net-output-dim 0))
@@ -199,6 +206,9 @@ master-prediction.neuralnetwork
     (->Tempvariable layers-output
                     layers-output-only
                     trans-weights
+                    temp-all-vector-o-gradients
+                    temp-all-vector-o-gradients2
+                    temp-all-vector-vector-h-gradients
                     temp-vector-o-gradients
                     temp-vector-o-gradients2
                     temp-vector-vector-h-gradients
@@ -269,6 +279,128 @@ master-prediction.neuralnetwork
         trans-weights (:trans-weights temp-vars)
         temp-matrix (:layers-output temp-vars)
         temp-matrix-only (:layers-output-only temp-vars)
+
+        temp-all-vector-o-gradients (last (:temp-all-vector-vector-h-gradients temp-vars))
+        temp-all-vector-o-gradients2 (:temp-all-vector-o-gradients2 temp-vars)
+        temp-all-vector-vector-h-gradients (:temp-all-vector-vector-h-gradients temp-vars)
+
+        temp-vector-o-gradients (last (:temp-vector-vector-h-gradients temp-vars))
+        temp-vector-o-gradients2 (:temp-vector-o-gradients2 temp-vars)
+        temp-vector-vector-h-gradients (:temp-vector-vector-h-gradients temp-vars)
+        input (submatrix inputmtx 0 0 (inc (first (:config network))) 1)
+        ;; target (submatrix targetmtx 0 no (last (:config network)) 1)
+        temp-matrix-input (conj temp-matrix input)
+        ]
+    (do
+      (entry! temp-vector-o-gradients 0)
+      (entry! (:temp-all-vector-o-gradients temp-vars) 0)
+      (entry! (:temp-all-vector-o-gradients2 temp-vars) 0)
+      (feed-forward network inputmtx temp-vars)
+
+      (if (not (= alpha 0))
+        (copy-matrix-delta network))
+
+      ;; calculate output gradients
+      (axpy! -1 (last temp-matrix-only) temp-all-vector-o-gradients)
+
+      (axpy! 1 targetmtx temp-all-vector-o-gradients)
+      (dtanh! (last temp-matrix-only) temp-all-vector-o-gradients2)
+      (mul! temp-all-vector-o-gradients2 temp-all-vector-o-gradients temp-all-vector-o-gradients)
+
+      ;; calculate hidden gradients
+      (doseq [x (range (- (count temp-matrix) 1) 0 -1)]
+        (let [temp-h-gradients (nth (:temp-all-vector-vector-h-gradients temp-vars) x)
+              temp-h-gradients-prev (nth (:temp-all-vector-vector-h-gradients temp-vars) (dec x))]
+          (do
+            ;; (mm! 1.0 (trans (get-weights-matrix (nth layers x))) temp-h-gradients
+            (mm! 1.0 (nth trans-weights x) temp-h-gradients
+                 0.0 temp-h-gradients-prev)
+            (mul! (nth temp-matrix-only (dec x)) temp-h-gradients-prev))))
+
+      ;; calculate average gradients
+      (doseq [layer-grad (range (count (:temp-vector-vector-h-gradients temp-vars)))]
+        (let [temp-unit-mtx (submatrix unit-matrix 0 0 (ncols inputmtx) 1)
+              curr-all-gradients (nth (:temp-all-vector-vector-h-gradients temp-vars) layer-grad)
+              curr-avg-gradients (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad)]
+
+          (mm! 1 curr-all-gradients temp-unit-mtx 0 curr-avg-gradients)
+          (scal! (/ 1 (ncols curr-all-gradients)) curr-avg-gradients)
+
+          )
+        )
+
+      ;; calculate average outputs
+      (doseq [layer-grad (range (count (:layers-output-only temp-vars)))]
+        (let [temp-unit-mtx (submatrix unit-matrix 0 0 (ncols (nth (:layers-output-only temp-vars) layer-grad)) 1)
+              curr-outputs (nth (:layers-output-only temp-vars) layer-grad)
+              curr-avg-outputs (submatrix (nth (:layers-output-only temp-vars) layer-grad) 0 0 (mrows curr-outputs) 1)]
+          (mm! 1 curr-outputs temp-unit-mtx 0 curr-avg-outputs)
+          (scal! (/ 1 (ncols curr-outputs)) curr-avg-outputs)
+          )
+        )
+
+      ;; calculate delta for weights
+      (doseq [row_o (range (- (count (:config network)) 2) -1 -1)]
+        (let [layer-out-vector (col (get-output-matrix (nth temp-matrix-input row_o)) 0)
+              cols-num (nth (take-last (dec (count config)) config) row_o)]
+          (doseq [x (range cols-num)]
+            (axpy! speed-learning layer-out-vector
+                   (col (nth (:temp-vector-matrix-delta temp-vars) row_o) x))
+            )))
+
+      ;;      (doseq [row_o (range (- (count (:config network)) 2) -1 -1)]
+      ;;      (axpy! (submatrix unit-matrix 0 0
+      ;;                        (mrows (nth (:temp-vector-matrix-delta temp-vars) row_o))
+      ;;                        (ncols (nth (:temp-vector-matrix-delta temp-vars) row_o))
+      ;;      )
+      ;;             (nth (:temp-vector-matrix-delta temp-vars) row_o)
+      ;;      )
+      ;;(scal! speed-learning (nth (:temp-vector-matrix-delta temp-vars) row_o))
+      ;;      )
+
+      (doseq [layer-grad (range (count (:temp-vector-vector-h-gradients temp-vars)))]
+        (let []
+          (doseq [x (range (nth (take-last (dec (count config)) config) layer-grad))]
+            (scal! (entry (row (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad) x) 0)
+                   (col (nth (:temp-vector-matrix-delta temp-vars) layer-grad) x)
+                   )))
+
+        (axpy! (nth (:temp-vector-matrix-delta temp-vars) layer-grad)
+               (nth trans-weights layer-grad)
+               )
+
+        ;; update biases
+        (mul! (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad)
+              (get-bias-vector (nth layers layer-grad))
+              (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
+              )
+
+        (scal! speed-learning (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad))
+        (axpy! (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
+               (get-bias-vector (nth layers layer-grad)))
+
+        ;; momentum, if alpha <> 0
+        (if (not (= alpha 0))
+          (axpy! alpha (nth (:temp-prev-delta-vector-matrix-delta temp-vars) layer-grad)
+                 (nth trans-weights layer-grad)
+                 ))
+        )
+
+      ))
+  )
+
+
+
+(defn backpropagation-backup
+  "learn network with one input vector"
+  [network inputmtx no targetmtx temp-vars speed-learning alpha]
+  (let [hidden-layers (take (dec (count (:layers network))) (:layers network))
+        output-layer (last (:layers network))
+        layers (:layers network)
+        config (:config network)
+        trans-weights (:trans-weights temp-vars)
+        temp-matrix (:layers-output temp-vars)
+        temp-matrix-only (:layers-output-only temp-vars)
         temp-vector-o-gradients (last (:temp-vector-vector-h-gradients temp-vars))
         temp-vector-o-gradients2 (:temp-vector-o-gradients2 temp-vars)
         temp-vector-vector-h-gradients (:temp-vector-vector-h-gradients temp-vars)
@@ -280,12 +412,12 @@ master-prediction.neuralnetwork
       (entry! (:temp-vector-o-gradients2 temp-vars) 0)
       (feed-forward network input temp-vars)
 
-            (if (not (= alpha 0))
-              (copy-matrix-delta network)
-            )
+      (if (not (= alpha 0))
+        (copy-matrix-delta network)
+        )
 
       ;; calculate output gradients
-        (axpy! -1 (last temp-matrix-only) temp-vector-o-gradients)
+      (axpy! -1 (last temp-matrix-only) temp-vector-o-gradients)
 
       (axpy! 1 target temp-vector-o-gradients)
       (dtanh! (last temp-matrix-only) temp-vector-o-gradients2)
@@ -327,14 +459,14 @@ master-prediction.neuralnetwork
                )
 
         ;; update biases
-        (mul! (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad)
-              (get-bias-vector (nth layers layer-grad))
-              (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
-              )
+               (mul! (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad)
+                   (get-bias-vector (nth layers layer-grad))
+                      (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
+                )
 
-        (scal! speed-learning (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad))
-        (axpy! (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
-               (get-bias-vector (nth layers layer-grad)))
+                (scal! speed-learning (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad))
+                (axpy! (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
+                       (get-bias-vector (nth layers layer-grad)) )
 
         ;; momentum, if alpha <> 0
         (if (not (= alpha 0))
@@ -346,8 +478,10 @@ master-prediction.neuralnetwork
         )
 
       )
-      )
+    )
   )
+
+
 
 (defn predict
   "feed forward propagation - prediction consumptions for input matrix"
@@ -391,38 +525,39 @@ master-prediction.neuralnetwork
 
 (defn train-network
   "train network with input/target vectors"
-  [network input-mtx target-mtx iteration-count temp-vars speed-learning alpha]
-  (let [line-count (dec (ncols input-mtx))
+  [network input-mtx target-mtx epoch-count mini-batch-size temp-vars3 speed-learning alpha]
+  (let [line-count (ncols input-mtx)
+        col-count (mrows input-mtx)
+        tcol-count (mrows target-mtx)
         temp-vars2 (create-temp-record network (:normalized-matrix input-test-dataset))
+        mini-batch-seg (conj (map #(vector %1 %2) (range 0 line-count mini-batch-size) (range mini-batch-size line-count mini-batch-size))
+                      [(reduce max (range 0 line-count mini-batch-size)) line-count])
         ]
-    (str
-      (doseq [y (range iteration-count)]
-        (doseq [x (range line-count)]
-          (backpropagation network input-mtx x target-mtx temp-vars speed-learning alpha)
-          ;;(backpropagation network input-mtx x target-mtx temp-vars (learning-rate speed-learning 0.002 y) alpha)
-          )
-        (let [os (mod y 10)]
+    (doseq [y (range epoch-count)]
+       (doseq [x (shuffle (range (count mini-batch-seg)))]
+        (let [prvi (first (nth mini-batch-seg x))
+              drugi (second (nth mini-batch-seg x))
+              input-segment (submatrix input-mtx 0 prvi col-count (- drugi prvi))
+              target-segment (submatrix target-mtx 0 prvi tcol-count (- drugi prvi))
+              temp-vars (create-temp-record network input-segment)]
+          (backpropagation network input-segment 1 target-segment temp-vars speed-learning alpha)
+          ))
+
+      (let [os (mod y 1)]
         (if (= os 0)
           (let [mape-value
-
-                ;; (evaluate-original-mape
-                ;; (evaluate-original (restore-output-vector test-norm-target-310 (predict network (:normalized-matrix test-norm-input-310) temp-vars2) 0)
-                ;;                       (restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)))
-
                 (evaluate-original-mape
                   (evaluate-original
                     (restore-output-vector target-test-dataset (predict network (:normalized-matrix input-test-dataset) temp-vars2) 0)
                     (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
-                    ))
+                    ))]
+            (do
+              (println y ": " mape-value)
+              (println "---------------------")
+              (write-file "mini_batch_015.csv" (str y "," mape-value "\n"))
 
-              ]
-                (do
-                  (println y ": " mape-value)
-                  (println "---------------------")
-                  ;;(write-file "test_62.csv" (str y "," mape-value "\n"))
-
-                ))))
-        ))))
+              ))))
+      )))
 
 (defn load-network-config
   "get network config from file file"
