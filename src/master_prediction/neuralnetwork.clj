@@ -34,7 +34,6 @@ master-prediction.neuralnetwork
                          ])
 
 (def max-dim 4096)
-
 (def unit-vector (dv (replicate max-dim 1)))
 (def unit-matrix (fge max-dim max-dim (repeat 1)))
 
@@ -51,7 +50,6 @@ master-prediction.neuralnetwork
     (map #(/ % 4.7) (take 500000 (repeatedly #(-> r .nextGaussian (* 0.9) (+ 1.0)))))
     ))
 
-
 (def temp-current-val (atom 0))
 (defn create-random-matrix-by-gaussian
   "Initialize a layer by gaussian"
@@ -61,9 +59,8 @@ master-prediction.neuralnetwork
       (throw (Exception. (str "Error. Max number of neurons is " max-dim))))
     (if (> dim-x max-dim)
       (throw (Exception. (str "Error. Max number of neurons is " max-dim))))
-    (reset! temp-current-val (+ @temp-current-val (* dim-x dim-y)))
+    (reset! temp-current-val (+ @temp-current-val(* dim-x dim-y)))
     (fge dim-y dim-x (nthrest normals @temp-current-val))
-    ;;(trans (fge dim-x dim-y (nthrest normals @temp-current-val)))
     ))
 
 (defn create-null-matrix
@@ -126,28 +123,24 @@ master-prediction.neuralnetwork
   (let [rows-num (mrows matrix)
         cols-num (ncols matrix)]
     (submatrix matrix 0 0 (dec rows-num) cols-num)
-    )
-  )
+    ))
 
 (defn get-bias-vector
   "return biases from layer"
   [layer]
   (let [num-rows (dec (mrows layer))
         num-cols (dec (ncols  layer))]
-    (submatrix layer 0 num-cols num-rows 1))
-  )
+    (submatrix layer 0 num-cols num-rows 1)))
 
-(defn set-biases-to-one
-  ""
+(defn set-biases-value
+  "initialize biases for neural network to value"
   [network value]
   (let [layers (:layers network)
         num-layers (count layers)
         biases (vec (map #(col (get-bias-vector %) 0) layers))]
     (doseq [x (range (count biases))]
             (entry! (nth biases x) value)
-        )
-      )
-    )
+        )))
 
 
 (defn create-network-gaussian
@@ -252,8 +245,9 @@ master-prediction.neuralnetwork
     (do
       ;; prepare weights for hidden layers
       (doseq [x (range (count layer-neurons))]
-        (scal! (Math/sqrt (/ 2 (+ (first (nth layer-neurons x)) (second (nth layer-neurons x)))))
-               (submatrix (nth (:layers network) x) (dec (mrows (nth (:layers network) x))) (ncols (nth (:layers network) x))) ))
+      (scal! (Math/sqrt (/ 2 (+ (first (nth layer-neurons x)) (second (nth layer-neurons x)))))
+                   (submatrix (nth (:layers network) x) (dec (mrows (nth (:layers network) x))) (ncols (nth (:layers network) x)))
+      ))
       )
     )
   )
@@ -525,7 +519,7 @@ master-prediction.neuralnetwork
 
 (defn train-network
   "train network with input/target vectors"
-  [network input-mtx target-mtx epoch-count mini-batch-size temp-vars3 speed-learning alpha]
+  [network input-mtx target-mtx epoch-count mini-batch-size speed-learning alpha]
   (let [line-count (ncols input-mtx)
         col-count (mrows input-mtx)
         tcol-count (mrows target-mtx)
@@ -554,7 +548,7 @@ master-prediction.neuralnetwork
             (do
               (println y ": " mape-value)
               (println "---------------------")
-              (write-file "mini_batch_016.csv" (str y "," mape-value "\n"))
+              (write-file "mini_batch_018.csv" (str y "," mape-value "\n"))
 
               ))))
       )))

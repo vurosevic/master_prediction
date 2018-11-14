@@ -11,106 +11,12 @@ master-prediction.example
             [master-prediction.neuralnetwork :refer :all]
             ))
 
-(def mreza-nn (atom (create-network-gaussian 64 [80 80 80 80] 1)))
-(def mreza-nn (atom (create-network-gaussian 64 [80 80 80] 1)))
-(def mreza-nn (atom (create-network-gaussian 64 [80 80] 1)))
-(def temp-variables2 (atom (create-temp-record @mreza-nn input-730-b)))
-(xavier-initialization-update @mreza-nn)
-
-(set-biases-to-one @mreza-nn 0)
-
-(feed-forward @mreza-nn (:normalized-matrix norm-input-730) @temp-variables2)
-(predict @mreza-nn (:normalized-matrix norm-input-730) @temp-variables2)
-(restore-output-vector norm-target-730 (predict @mreza-nn (:normalized-matrix norm-input-730) @temp-variables2) 0)
-
-(def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix test-norm-input-310))))
-(predict @mreza-nn (:normalized-matrix test-norm-input-310) @temp-variables3)
-
-;; reseno !!!
-(mm
-  (gb native-float (first (:temp-vector-vector-h-gradients @temp-variables2)))
-  (trans (first (:temp-vector-vector-h-gradients @temp-variables2)))
-  )
-
-(for [x (range 1000)]
-  (backpropagation @mreza-nn (:normalized-matrix norm-input-730) 0 (:normalized-matrix norm-target-730)
-                   @temp-variables2 0.015 0)
-  )
-
-(get-bias-vector (nth (:layers @mreza-nn) 0))
-(trans (get-weights-matrix (nth (:layers @mreza-nn) 0)) )
-
-(backpropagation @mreza-nn (:normalized-matrix norm-input-730) 1 (:normalized-matrix norm-target-730)
-                 @temp-variables2 0.015 0.4)
-
-(with-progress-reporting
-  (quick-bench
-    (backpropagation @mreza-nn (:normalized-matrix norm-input-730) 4 (:normalized-matrix norm-target-730)
-                     @temp-variables2 0.015 0.4)
-    )
-  )
-
-(:layers-output @temp-variables2)
-(submatrix (:normalized-matrix norm-input-730) 0 1 (inc (first (:config @mreza-nn))) 1)
-
-(count (conj (:layers-output @temp-variables2)
-             (submatrix (:normalized-matrix norm-input-730) 0 1 (inc (first (:config @mreza-nn))) 1))
-       )
-
-(time (train-network @mreza-nn (:normalized-matrix norm-input-730) (:normalized-matrix norm-target-730) 50
-                     @temp-variables2 0.00137 0.9))
-
-(evaluate-original-mape
-  (evaluate-original
-    (restore-output-vector test-norm-target-310 (predict @mreza-nn (:normalized-matrix test-norm-input-310) @temp-variables3) 0)
-    (restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)
-    )
-  )
-
-(restore-output-vector test-norm-target-310 (predict @mreza-nn (:normalized-matrix test-norm-input-310) @temp-variables3) 0)
-(restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)
-
-(evaluate-original
-  (restore-output-vector test-norm-target-310 (predict @mreza-nn (:normalized-matrix test-norm-input-310) @temp-variables3) 0)
-  (restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)
-  )
-
-(restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)
-(restore-output-vector test-norm-target-310 (predict @mreza-nn (:normalized-matrix test-norm-input-310) @temp-variables3) 0)
-(predict @mreza-nn (:normalized-matrix test-norm-input-310) @temp-variables3)
-
-(def input-row-test (submatrix (:normalized-matrix norm-input-730) 0 0 (inc (first (:config @mreza-nn))) 1))
-(def temp-variables2 (atom (create-temp-record @mreza-nn input-row-test)))
-(feed-forward @mreza-nn input-row-test @temp-variables2)
-
-(restore-output-vector test-norm-target-310 (predict @mreza-nn (:normalized-matrix test-norm-input-310) @temp-variables3) 0)
-
-(first (:config @mreza-nn))
-(mrows (:normalized-matrix norm-input-730))
-
-(:restore-coeficients norm-input-730)
-
-(mrows (:restore-coeficients norm-input-730))
-
-(:restore-coeficients norm-input-730)
-
 ;; snimanje i ucitavanje konfiguracije
+(def mreza-nn (atom (create-network-from-file "nn-mreza-141.csv")))
 (save-network-to-file @mreza-nn "nn-mreza-141.csv")
 
-(def mreza-nn (atom (create-network-from-file "nn-mreza-141.csv")))
-(-> @mreza-tn)
-(-> @mreza-nn)
 
-(predict @mreza-tn (:normalized-matrix test-norm-input-310) @temp-variables3)
-
-(def temp-variables3 (atom (create-temp-record @mreza-tn (:normalized-matrix test-norm-input-310))))
-(evaluate-original-mape
-  (evaluate-original
-    (restore-output-vector test-norm-target-310 (predict @mreza-tn (:normalized-matrix test-norm-input-310) @temp-variables3) 0)
-    (restore-output-vector test-norm-target-310 (:normalized-matrix test-norm-target-310) 0)
-    )
-  )
-
+;; predikcija za specificirani ulazni vektor
 (def input-test [2010 9 25 7 0 3424 3060 2861 2772 2761 2971 3435 4015 4195 4261 4215
                  4268 4225 4161 4047 4003 3995 3992 4365 4956 4849 4670 4273 3848 2761
                  4956 93622 14 19.5 25 15.96 14 19.27 25 15.82 23.27 48.95 1011.73 3452
@@ -130,42 +36,29 @@ master-prediction.example
                   8.212765957 50.21276596 1015.765957 1])
 
 (def norm-test (atom (fge 65 1)))
-(normalize-input-vector input-test2 norm-input-730 @norm-test)
-(def norm-in (normalize-input-vector input-test norm-input-730 @norm-test))
-(def norm-in2 (normalize-input-vector input-test2 norm-input-730 @norm-test))
-(def norm-in3 (normalize-input-vector input-test3 norm-input-730 @norm-test))
-
-(-> norm-in)
+(def norm-in (normalize-input-vector input-test input-trainig-dataset @norm-test))
+(def norm-in2 (normalize-input-vector input-test2 input-trainig-dataset @norm-test))
+(def norm-in3 (normalize-input-vector input-test3 input-trainig-dataset @norm-test))
 
 (def temp-variables4 (atom (create-temp-record @mreza-nn norm-in)))
 (predict @mreza-nn norm-in @temp-variables4)
+(restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables4) 0)
+(entry (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables4) 0) 0)
 
-(restore-output-vector norm-target-730 (predict @mreza-nn norm-in2 @temp-variables4) 0)
-
-(entry (restore-output-vector norm-target-730 (predict @mreza-nn norm-in3 @temp-variables4) 0) 0)
-
-(predict @mreza-nn norm-in (create-temp-record @mreza-nn norm-in))
-
-(predict @mreza-nn (:normalized-matrix norm-input-730) @temp-variables3)
-
-(:normalized-matrix test-norm-input-310)
-
-(:restore-coeficients norm-input-730)
-
-;;
+;; kreiranje i treniranje mreze
 (def mreza-nn (atom (create-network-gaussian 64 [80 80 80] 1)))
 (xavier-initialization-update @mreza-nn)
-(set-biases-to-one @mreza-nn 0)
-
-(def input-row-test (submatrix (:normalized-matrix input-trainig-dataset) 0 0 (inc (first (:config @mreza-nn))) 1))
-(def temp-variables2 (atom (create-temp-record @mreza-nn input-row-test)))
+(set-biases-value @mreza-nn 0)
 
 (def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 50 1
-                               @temp-variables2 0.017557 0.9))
+                               (:normalized-matrix target-trainig-dataset) 25 5
+                               0.017557 0.9))
 
+(predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
+
+;; evaluacija mreze
 (evaluate-original-mape
   (evaluate-original
     (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
@@ -181,127 +74,11 @@ master-prediction.example
 
 (feed-forward @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
 (:layers-output @temp-variables3)
-(:temp-all-vector-o-gradients @temp-variables2)
-(:temp-all-vector-o-gradients2 @temp-variables2)
-(:temp-all-vector-vector-h-gradients @temp-variables2)
-(:temp-vector-vector-h-gradients @temp-variables2)
-
-(entry (row (last (:temp-all-vector-vector-h-gradients @temp-variables2)) 0) 0)
-(last (:temp-all-vector-vector-h-gradients @temp-variables2))
 
 (def temp-variables2 (atom (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset))))
-(backpropagation @mreza-nn (:normalized-matrix input-trainig-dataset) 4 (:normalized-matrix target-trainig-dataset)
-                 @temp-variables2 0.015 0.4)
-
-
 (quick-bench
   (backpropagation @mreza-nn (:normalized-matrix input-trainig-dataset) 4 (:normalized-matrix target-trainig-dataset)
                    @temp-variables2 0.015 0.4)
   )
 
-
-(ncols (:normalized-matrix input-test-dataset))
-
-(def tes (fge 3 3 [1 1 2 2 3 3 4 4 5 5 6 6]))
-(-> tes)
-
-(defn fill-vector
-  [result-vector source]
-    (copy! (fv source) (col result-vector 0))
-  )
-
-(defn fill-gradient-vector
-  [input-vector result-vector]
-  (let [count-vec (mrows input-vector)
-        sum-list (map sum (map #(row input-vector %) (range (mrows input-vector))))]
-    (doseq [x (range count-vec)]
-      (entry! (col result-vector 0) x (nth sum-list x)))
-    )
-  )
-
-(def tes (first (:temp-all-vector-vector-h-gradients @temp-variables2)))
-(map sum (map #(row tes %) (range (mrows tes))))
-
-(-> tes)
-
-(:temp-vector-o-gradients @temp-variables2)
-(first (:temp-vector-vector-h-gradients @temp-variables2))
-
-(map sum (map #(row tes %) (range (mrows tes))))
-
-(map #(entry! (:temp-vector-o-gradients @temp-variables2) %) (map sum (map #(row tes %) (range (mrows tes)))))
-
-(map #(entry! (last (:temp-vector-vector-h-gradients @temp-variables2)) %) (map sum (map #(row tes %) (range (mrows tes)))))
-
-
-(fill-vector (last (:temp-vector-vector-h-gradients @temp-variables2)) (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
-
-(quick-bench (fill-vector (first (:temp-vector-vector-h-gradients @temp-variables2)) (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes)))))))
-
-(fill-gradient-vector tes (first (:temp-vector-vector-h-gradients @temp-variables2)))
-
-(with-progress-reporting
-  (quick-bench (fill-gradient-vector tes (first (:temp-vector-vector-h-gradients @temp-variables2))))
-  )
-
-(-> tes)
-(def jed (fge 1852 1 (repeat 1)))
-(mm tes jed)
-(nth (:temp-vector-vector-h-gradients @temp-variables2) 3)
-
-(entry (col (first (:temp-vector-vector-h-gradients @temp-variables2)) 0) 3)
-
-(mm! 1 tes jed 0 (first (:temp-vector-vector-h-gradients @temp-variables2)))
-(scal! (/ 1 (ncols tes)) (first (:temp-vector-vector-h-gradients @temp-variables2)))
-
-(quick-bench (mm! 1 tes jed 0 (first (:temp-vector-vector-h-gradients @temp-variables2))))
-
-(quick-bench (mm tes jed))
-
-
-(quick-bench (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
-
-(map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes)))))
-
-(count (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
-
-(dv (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes))))))
-
-(quick-bench (dv (map #(/ % (ncols tes)) (map sum (map #(row tes %) (range (mrows tes)))))))
-
-(submatrix unit-matrix 0 0 80 1)
-(:layers-output @temp-variables2)
-(nth (:layers-output-only @temp-variables2) 0)
-(def tes1 (nth (:layers-output-only @temp-variables2) 0))
-
-(map #(/ % (ncols tes1)) (map sum (map #(row tes1 %) (range (mrows tes1)))))
-(count (map #(/ % (ncols tes1)) (map sum (map #(row tes1 %) (range (mrows tes1))))))
-
-(for [x (range 0 1852 60)
-      y (range 60 1852 60)]
-  (str x ":" y)
-  )
-
-(conj (map #(vector %1 %2) (range 0 1852 60) (range 60 1852 60))
-      [(reduce max (range 0 1852 60)) 1852])
-
-(def seg-ts (conj (map #(vector %1 %2) (range 0 1852 60) (range 60 1852 60))
-                  [(reduce max (range 0 1852 60)) 1852]))
-
-(count (-> seg-ts))
-(for [x (range (count (-> seg-ts)))]
-  (str (nth seg-ts x))
-  )
-
-(reduce max (range 0 1852 60))
-
-(map #(vector %1 %2) (range 0 1852 60) (range 60 1852 60))
-
-(:normalized-matrix input-trainig-dataset)
-
-(submatrix (:normalized-matrix input-trainig-dataset)
-           0 1 65 3)
-
-(doseq [y (range 150)]
-  (println y)
-        )
+(read-data-from-csv "resources/data_prediction.csv")
