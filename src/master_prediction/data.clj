@@ -42,12 +42,12 @@ master-prediction.data
     (doall
       (doseq [y (range (count (:layers network)))]
         (write-file filename (str "LAYER," (inc y) "\n"))
-        (doseq [x (range (mrows (nth (:layers network) y)))]
+        (doseq [x (range (ncols (nth (:layers network) y)))]
           (write-file filename
                       (str (string/join ""
                                         (drop-last
-                                          (reduce str (map str (row (nth (:layers network) y) x)
-                                                      (replicate (ncols (nth (:layers network) y)) ","))))) "\n")))))
+                                          (reduce str (map str (col (nth (:layers network) y) x)
+                                                      (replicate (mrows (nth (:layers network) y)) ","))))) "\n")))))
     (write-file filename "END\n")))
 
 
@@ -55,16 +55,16 @@ master-prediction.data
   "get max value from vector"
   [input-vec]
   (let [max-index (imax input-vec)]
-    (entry input-vec max-index)
-    ;;(* (entry input-vec max-index) 1)                     ;;1.1
+    ;;(entry input-vec max-index)
+    (* (entry input-vec max-index) 1.1)                     ;;1.1
     ))
 
 (defn get-min-value
   "get min value from vector"
   [input-vec]
   (let [min-index (imin input-vec)]
-    (entry input-vec min-index)
-    ;;(* (entry input-vec min-index) 1)                     ;;0.9
+    ;;(entry input-vec min-index)
+    (* (entry input-vec min-index) 0.9)                     ;;0.9
     ))
 
 (defn normalize-vector
@@ -95,7 +95,7 @@ master-prediction.data
   [input-matrix]
   (let [rows-count (mrows input-matrix)
         cols-count (ncols input-matrix)
-        norm-matrix (fge rows-count cols-count)             ;; create null matrix
+        norm-matrix (fge rows-count cols-count)
         coef-matrix (fge rows-count 2)]
     (do
       (doseq [x (range (mrows input-matrix))]
@@ -167,6 +167,8 @@ master-prediction.data
 (def norm-input-all (append-biases-to-normalized-matrix (create-norm-matrix input-matrix-all)))
 (def norm-target-all (create-norm-matrix target-matrix-all))
 
+(-> norm-input-all)
+(-> norm-target-all)
 
 (defn get-training-dataset
   "take training dataset by begining"

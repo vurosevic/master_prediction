@@ -12,9 +12,10 @@ master-prediction.example
             ))
 
 ;; snimanje i ucitavanje konfiguracije
-(def mreza-nn (atom (create-network-from-file "nn-mreza-141.csv")))
-(save-network-to-file @mreza-nn "nn-mreza-141.csv")
+(def mreza-nt (atom (create-network-from-file "nn-mreza-test.csv")))
+(save-network-to-file @mreza-nn "nn-mreza-160.csv")
 
+(-> @mreza-nt)
 
 ;; predikcija za specificirani ulazni vektor
 (def input-test [2010 9 25 7 0 3424 3060 2861 2772 2761 2971 3435 4015 4195 4261 4215
@@ -50,18 +51,40 @@ master-prediction.example
 (xavier-initialization-update @mreza-nn)
 (set-biases-value @mreza-nn 0)
 
-(def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
+(def temp-variables3 (atom (create-temp-record @mreza-nt (:normalized-matrix input-test-dataset))))
 
-(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 25 5
-                               0.017557 0.9))
+(time (train-network @mreza-nt (:normalized-matrix input-trainig-dataset)
+                               (:normalized-matrix target-trainig-dataset) 5 1
+                               0.015557 0.9))
+
+(nth (:layers @mreza-nt) 0)
+(get-bias-vector (nth (:layers @mreza-nt) 0))
+(submatrix (nth (:layers @mreza-nt) 0) 0 1 80 1)
+
+(nth (:layers @mreza-nn) 0)
+(get-bias-vector (nth (:layers @mreza-nn) 0))
+(submatrix (nth (:layers @mreza-nn) 0) 0 1 80 1)
+
+(mul
+  (nth (:temp-vector-vector-h-gradients @temp-variables3) 0)
+  (get-bias-vector (nth (:layers @mreza-nt) 0))
+  )
+
+(copy (get-bias-vector (nth (:layers @mreza-nt) 0)))
+(get-bias-vector (nth (:layers @mreza-nt) 0))
+(get-bias-vector (nth (:layers @mreza-nn) 0))
+
+(mul
+  (nth (:temp-vector-vector-h-gradients @temp-variables3) 0)
+  (copy (get-bias-vector (nth (:layers @mreza-nn) 0)))
+  )
 
 (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
 
 ;; evaluacija mreze
 (evaluate-original-mape
   (evaluate-original
-    (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
+    (restore-output-vector target-test-dataset (predict @mreza-nt (:normalized-matrix input-test-dataset) @temp-variables3) 0)
     (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
     ))
 
@@ -82,3 +105,9 @@ master-prediction.example
   )
 
 (read-data-from-csv "resources/data_prediction.csv")
+
+(:layers @mreza-nn)
+(:layers @mreza-nt)
+
+(get-bias-vector (nth (:layers @mreza-nn) 4))
+(get-bias-vector (nth (:layers @mreza-nt) 4))
