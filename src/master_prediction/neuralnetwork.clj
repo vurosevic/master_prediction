@@ -30,9 +30,9 @@ master-prediction.neuralnetwork
 (defrecord Neuronetwork [
                          layers                              ;; vector of layers (hiddens and output weights and biases)
                          config                              ;; vector, numbers of neurons by layer
-                         layers-output                       ;; vector of matrix, outputs from layers
                          ])
 
+(def max-layers 20)
 (def max-dim 4096)
 (def unit-vector (dv (replicate max-dim 1)))
 (def unit-matrix (fge max-dim max-dim (repeat 1)))
@@ -47,11 +47,11 @@ master-prediction.neuralnetwork
 (import '(java.util Random))
 (def normals
   (let [r (Random.)]
-    (map #(/ % 4.7) (take 500000 (repeatedly #(-> r .nextGaussian (* 0.9) (+ 1.0)))))
+    (map #(/ % 4.7) (take (* max-layers (* max-dim max-dim)) (repeatedly #(-> r .nextGaussian (* 0.9) (+ 1.0)))))
     ))
 
 (def temp-current-val (atom 0))
-(defn create-random-matrix-by-gaussian
+(defn create-random-matrix
   "Initialize a layer by gaussian"
   [dim-y dim-x]
   (do
@@ -59,9 +59,13 @@ master-prediction.neuralnetwork
       (throw (Exception. (str "Error. Max number of neurons is " max-dim))))
     (if (> dim-x max-dim)
       (throw (Exception. (str "Error. Max number of neurons is " max-dim))))
-    (reset! temp-current-val (+ @temp-current-val(* dim-x dim-y)))
-    (fge dim-y dim-x (nthrest normals @temp-current-val))
+    (let [matrix (fge dim-y dim-x (nthrest normals @temp-current-val))
+          - (reset! temp-current-val (+ @temp-current-val(* dim-x dim-y)))]
+      matrix)
     ))
+
+;;    (reset! temp-current-val (+ @temp-current-val(* dim-x dim-y)))
+;;    (fge dim-y dim-x (nthrest normals @temp-current-val))
 
 (defn create-null-matrix
   "Initialize a layer"
@@ -105,9 +109,7 @@ master-prediction.neuralnetwork
     (do
       (scal! 0 col)
       (entry! col (dec (dim col)) 1)
-      )
-    )
-  )
+      )))
 
 (defn get-weights-matrix
   "return weights matrix from layer"
@@ -132,7 +134,7 @@ master-prediction.neuralnetwork
         num-cols (dec (ncols  layer))]
     (submatrix layer 0 num-cols num-rows 1)))
 
-(defn set-biases-value
+(defn set-biases-value2
   "initialize biases for neural network to value"
   [network value]
   (let [layers (:layers network)
@@ -142,8 +144,29 @@ master-prediction.neuralnetwork
             (entry! (nth biases x) value)
         )))
 
+(defn set-biases-value
+  "initialize biases for neural network to value"
+  [layers value]
+  (let [num-layers (count layers)
+        biases (vec (map #(col (get-bias-vector %) 0) layers))]
+    (doseq [x (range (count biases))]
+      (entry! (nth biases x) value)
+      )))
 
-(defn create-network-gaussian
+(defn xavier-initialization-update
+  [layers config]
+  (let [
+        tmp1 (take (dec (count config)) config)
+        tmp2 (take-last (dec (count config)) config)
+        layer-neurons (map vector tmp1 tmp2)]
+    (do
+      ;; prepare weights for hidden layers
+      (doseq [x (range (count layer-neurons))]
+        (scal! (Math/sqrt (/ 2 (+ (first (nth layer-neurons x)) (second (nth layer-neurons x)))))
+               (submatrix (nth layers x) (dec (mrows (nth layers x))) (ncols (nth layers x)))
+               )))))
+
+(defn create-network
   "create new neural network"
   [number-input-neurons vector-of-numbers-hidden-neurons number-output-neurons]
   (let [config (into (into (vector number-input-neurons) vector-of-numbers-hidden-neurons) (vector number-output-neurons))
@@ -151,16 +174,14 @@ master-prediction.neuralnetwork
         tmp1 (take (dec (count config)) config)
         tmp2 (take-last (dec (count config)) config)
         layers (for [x (take (count (map vector tmp1 tmp2)) (map vector tmp1 tmp2))]
-                 (conj (#(create-random-matrix-by-gaussian (inc (second x)) (inc (first x)) ))))
-        layer-out (for [x tmp2]
-                       (conj (#(create-null-matrix 1 (inc x)))))
+                 (conj (#(create-random-matrix (inc (second x)) (inc (first x)) ))))
         -   (doseq [x (range (dec layers-count))]
             (prepare-last-col (nth layers x)))]
+        -   (xavier-initialization-update layers config)
+        -   (set-biases-value layers 0)
       (->Neuronetwork layers
                       config
-                      layer-out)
-    )
-  )
+                      )))
 
 (defn create-temp-record
   "create temp record for calculations"
@@ -231,23 +252,6 @@ master-prediction.neuralnetwork
          (layer-output (nth layers-output y) (nth (:layers network) (inc y)) (nth layers-output (inc y)) tanh!) )
         )
       (throw (Exception. (str "Input dimmensions is not correct")))
-      )
-    )
-  )
-
-(defn xavier-initialization-update
-  [network]
-  (let [
-        config (:config network)
-        tmp1 (take (dec (count config)) config)
-        tmp2 (take-last (dec (count config)) config)
-        layer-neurons (map vector tmp1 tmp2)]
-    (do
-      ;; prepare weights for hidden layers
-      (doseq [x (range (count layer-neurons))]
-      (scal! (Math/sqrt (/ 2 (+ (first (nth layer-neurons x)) (second (nth layer-neurons x)))))
-                   (submatrix (nth (:layers network) x) (dec (mrows (nth (:layers network) x))) (ncols (nth (:layers network) x)))
-      ))
       )
     )
   )
@@ -514,6 +518,7 @@ master-prediction.neuralnetwork
         ]
     (->Neuronetwork layers
                     config
-                    layer-out)
+                    ;; layer-out
+                    )
     )
   )

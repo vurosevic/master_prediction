@@ -12,8 +12,8 @@ master-prediction.example
             ))
 
 ;; snimanje i ucitavanje konfiguracije
-(def mreza-nt (atom (create-network-from-file "nn-mreza-test.csv")))
-(save-network-to-file @mreza-nn "nn-mreza-160.csv")
+(def mreza-nt (atom (create-network-from-file "nn-mreza-122.csv")))
+(save-network-to-file @mreza-nn "nn-mreza-126.csv")
 
 (-> @mreza-nt)
 
@@ -47,14 +47,14 @@ master-prediction.example
 (entry (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables4) 0) 0)
 
 ;; kreiranje i treniranje mreze
-(def mreza-nn (atom (create-network-gaussian 64 [80 80 80] 1)))
-(xavier-initialization-update @mreza-nn)
-(set-biases-value @mreza-nn 0)
+(def mreza-nn (atom (create-network 64 [80 200 80] 1)))
+;; (xavier-initialization-update @mreza-nn)
+;; (set-biases-value @mreza-nn 0)
 
-(def temp-variables3 (atom (create-temp-record @mreza-nt (:normalized-matrix input-test-dataset))))
+(def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
 
-(time (train-network @mreza-nt (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 5 1
+(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
+                               (:normalized-matrix target-trainig-dataset) 10 1
                                0.015557 0.9))
 
 (nth (:layers @mreza-nt) 0)
@@ -84,7 +84,7 @@ master-prediction.example
 ;; evaluacija mreze
 (evaluate-original-mape
   (evaluate-original
-    (restore-output-vector target-test-dataset (predict @mreza-nt (:normalized-matrix input-test-dataset) @temp-variables3) 0)
+    (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
     (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
     ))
 
