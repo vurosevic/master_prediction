@@ -82,8 +82,7 @@ master-prediction.neuralnetwork
   "generate output from layer"
   [input weights result o-func]
     (mm! 1.0 weights input 0.0 result)
-    (o-func (submatrix result 0 0 (dec (mrows result)) (ncols result)))
-  )
+    (o-func (submatrix result 0 0 (dec (mrows result)) (ncols result))))
 
 (defn dtanh!
   "calculate dtanh for vector or matrix"
@@ -230,9 +229,7 @@ master-prediction.neuralnetwork
                     temp-vector-matrix-delta-biases
                     temp-prev-delta-vector-matrix-delta
                     temp-vector-matrix-delta-momentum
-                    )
-    )
-  )
+                    )))
 
 (defn feed-forward
   "feed forward propagation"
@@ -251,10 +248,7 @@ master-prediction.neuralnetwork
          (doseq [y (range 0 (- number-of-layers 1))]
          (layer-output (nth layers-output y) (nth (:layers network) (inc y)) (nth layers-output (inc y)) tanh!) )
         )
-      (throw (Exception. (str "Input dimmensions is not correct")))
-      )
-    )
-  )
+      (throw (Exception. (str "Input dimmensions is not correct"))))))
 
 (defn copy-matrix-delta
   "save delta matrix for momentum"
@@ -267,7 +261,7 @@ master-prediction.neuralnetwork
     )
   )
 
-(defn backpropagation
+(defn learning-once
   "learn network with one input vector"
   [network inputmtx no targetmtx temp-vars speed-learning alpha]
   (let [hidden-layers (take (dec (count (:layers network))) (:layers network))
@@ -345,16 +339,6 @@ master-prediction.neuralnetwork
             (axpy! speed-learning layer-out-vector
                    (col (nth (:temp-vector-matrix-delta temp-vars) row_o) x))
             )))
-
-      ;;      (doseq [row_o (range (- (count (:config network)) 2) -1 -1)]
-      ;;      (axpy! (submatrix unit-matrix 0 0
-      ;;                        (mrows (nth (:temp-vector-matrix-delta temp-vars) row_o))
-      ;;                        (ncols (nth (:temp-vector-matrix-delta temp-vars) row_o))
-      ;;      )
-      ;;             (nth (:temp-vector-matrix-delta temp-vars) row_o)
-      ;;      )
-      ;;(scal! speed-learning (nth (:temp-vector-matrix-delta temp-vars) row_o))
-      ;;      )
 
       (doseq [layer-grad (range (count (:temp-vector-vector-h-gradients temp-vars)))]
         (let []
@@ -439,12 +423,12 @@ master-prediction.neuralnetwork
         ]
     (doseq [y (range epoch-count)]
        (doseq [x (shuffle (range (count mini-batch-seg)))]
-        (let [prvi (first (nth mini-batch-seg x))
-              drugi (second (nth mini-batch-seg x))
-              input-segment (submatrix input-mtx 0 prvi col-count (- drugi prvi))
-              target-segment (submatrix target-mtx 0 prvi tcol-count (- drugi prvi))
+        (let [first-seg (first (nth mini-batch-seg x))
+              second-seg (second (nth mini-batch-seg x))
+              input-segment (submatrix input-mtx 0 first-seg col-count (- second-seg first-seg))
+              target-segment (submatrix target-mtx 0 first-seg tcol-count (- second-seg first-seg))
               temp-vars (create-temp-record network input-segment)]
-          (backpropagation network input-segment 1 target-segment temp-vars speed-learning alpha)
+          (learning-once network input-segment 1 target-segment temp-vars speed-learning alpha)
           ))
 
       (let [os (mod y 1)]
@@ -459,8 +443,8 @@ master-prediction.neuralnetwork
               (println y ": " mape-value)
               (println "---------------------")
               (write-file "mini_batch_018.csv" (str y "," mape-value "\n"))
-
               ))))
+
       )))
 
 (defn load-network-config

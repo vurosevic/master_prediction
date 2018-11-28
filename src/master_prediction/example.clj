@@ -54,8 +54,10 @@ master-prediction.example
 (def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 10 1
+                               (:normalized-matrix target-trainig-dataset) 100 4
                                0.015557 0.9))
+
+(-> input-trainig-dataset)
 
 (nth (:layers @mreza-nt) 0)
 (get-bias-vector (nth (:layers @mreza-nt) 0))
@@ -88,6 +90,14 @@ master-prediction.example
     (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
     ))
 
+(evaluate-original
+  (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
+  (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+  )
+
+(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
+(restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+
 (def nn (evaluate-original
           (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
           (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
@@ -100,7 +110,7 @@ master-prediction.example
 
 (def temp-variables2 (atom (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset))))
 (quick-bench
-  (backpropagation @mreza-nn (:normalized-matrix input-trainig-dataset) 4 (:normalized-matrix target-trainig-dataset)
+  (learning-once @mreza-nn (:normalized-matrix input-trainig-dataset) 4 (:normalized-matrix target-trainig-dataset)
                    @temp-variables2 0.015 0.4)
   )
 
