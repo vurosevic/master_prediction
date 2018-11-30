@@ -119,21 +119,22 @@ master-prediction.data
 
 (defn normalize-input-vector
   "normalize input vector"
-  [input-vec norm-input-vector output-norm-vector]
+  [input-vec norm-input-vector]
   (let [input (fge (count input-vec) 1 input-vec)
         coeficients (:restore-coeficients norm-input-vector)
         dim-coef (mrows (:restore-coeficients norm-input-vector))
-        output-norm-vector (fge (mrows input) (ncols input) (repeat (* (mrows input) (ncols input)) 1))]
+        output-norm-vector (fge (inc (mrows input)) (ncols input) (repeat (* (inc (mrows input)) (ncols input)) 1))]
     (if (= (mrows input) dim-coef)
-      (doseq [x (range (dec dim-coef))]
+      (doseq [x (range dim-coef)]
+      ;; (doseq [x (range (dec dim-coef))]
         (let [val-max (entry (row coeficients x) 1)
               val-min (entry (row coeficients x) 0)
               val-maxmin (- val-max val-min)
               val-input (entry (col input 0) x)
-              val-norm  (/ (- val-input val-min) val-maxmin)]
+              val-norm (/ (- val-input val-min) val-maxmin)]
           (entry! (col output-norm-vector 0) x val-norm)
-         )
-       )
+          )
+        )
       (throw (Exception. (str "Error: Input vector does not match the norm input vector."))))
       (-> output-norm-vector)
     ))
