@@ -141,8 +141,9 @@ master-prediction.data
 
 (defn restore-output-vector
   "Restoring output vector"
-  [normalized-record norm-matrix row-no]
+  [normalized-record norm-matrix]
   (let [coef (:restore-coeficients normalized-record)
+        row-no 0
         norm-vector (copy (row norm-matrix row-no))
         min-value (entry (row coef row-no) 0)
         max-value (entry (row coef row-no) 1)

@@ -40,10 +40,10 @@ master-prediction.example
 (def norm-in2 (normalize-input-vector input-test2 input-trainig-dataset))
 (def norm-in3 (normalize-input-vector input-test3 input-trainig-dataset))
 
-(def temp-variables4 (atom (create-temp-record @mreza-nn norm-in)))
-(predict @mreza-nn norm-in3 @temp-variables4)
-(restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables4) 0)
-(entry (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in3 @temp-variables4) 0) 0)
+(def temp-variables (atom (create-temp-record @mreza-nn norm-in)))
+(predict @mreza-nn norm-in @temp-variables)
+(restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables))
+(entry (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables)) 0)
 
 
 
@@ -90,16 +90,19 @@ master-prediction.example
 ;; evaluacija mreze, test podaci
 (evaluate-original-mape
   (evaluate-original
-    (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
-    (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+    (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
+    (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
     ))
+
+(predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
+(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
 
 ;; evaluacija sa trening podacima
 (def temp-variables5 (atom (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset))))
 (evaluate-original-mape
   (evaluate-original
-    (restore-output-vector target-trainig-dataset (predict @mreza-nn (:normalized-matrix input-trainig-dataset) @temp-variables5) 0)
-    (restore-output-vector target-trainig-dataset (:normalized-matrix target-trainig-dataset) 0)
+    (restore-output-vector target-trainig-dataset (predict @mreza-nn (:normalized-matrix input-trainig-dataset) @temp-variables5))
+    (restore-output-vector target-trainig-dataset (:normalized-matrix target-trainig-dataset))
     ))
 
 
@@ -115,6 +118,9 @@ master-prediction.example
           (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
           (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
           ))
+
+
+
 
 (predict @mreza-nn (:normalized-matrix input-test-dataset) (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset)))
 
