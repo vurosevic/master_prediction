@@ -432,10 +432,10 @@ master-prediction.neuralnetwork
       (let [os (mod y 1)]
         (if (= os 0)
           (let [mape-value
-                (evaluate-original-mape
-                  (evaluate-original
-                    (restore-output-vector target-test-dataset (predict network (:normalized-matrix input-test-dataset) temp-vars2) 0)
-                    (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+                (evaluate-mape
+                  (evaluate
+                    (restore-output-vector target-test-dataset (predict network (:normalized-matrix input-test-dataset) temp-vars2))
+                    (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
                     ))]
             (do
               (println y ": " mape-value)
@@ -454,17 +454,14 @@ master-prediction.neuralnetwork
                                     (take 1 (nthnext
                                               (string/split
                                                 (slurp (str "resources/" filename)) #"\n") (inc c-index)))))0))
-    )
-  )
+    ))
 
 (defn load-network-layers
   "get a output part of data from file"
   [filename x]
   (let [o-index (.indexOf (string/split (slurp (str "resources/" filename)) #"\n") (str "LAYER," (inc x)))
         e-index (.indexOf (string/split (slurp (str "resources/" filename)) #"\n") (str "LAYER," (+ x 2)))
-        e-index2 (.indexOf (string/split (slurp (str "resources/" filename)) #"\n") "END")
-        ]
-
+        e-index2 (.indexOf (string/split (slurp (str "resources/" filename)) #"\n") "END")]
     (if (= e-index -1)
       (map #(string/split % #",")
            (take (dec (- e-index2 o-index))
@@ -476,8 +473,7 @@ master-prediction.neuralnetwork
                  (nthnext
                    (string/split
                      (slurp (str "resources/" filename)) #"\n") (inc o-index))))
-      )
-    ))
+      )))
 
 
  (defn create-network-from-file
@@ -492,15 +488,6 @@ master-prediction.neuralnetwork
                               (fge (inc (second (nth x y))) (inc (first (nth x y)))
                                    (reduce into [] (map #(map parse-float %)
                                                         (load-network-layers filename y)))
-                                   )
-                            ))
-                        )
-        layer-out (for [x tmp2]
-                    (conj (#(create-null-matrix 1 (inc x)))))
-        ]
+                                   ))))]
     (->Neuronetwork layers
-                    config
-                    ;; layer-out
-                    )
-    )
-  )
+                    config )))
