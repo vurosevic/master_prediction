@@ -392,17 +392,15 @@ master-prediction.neuralnetwork
       ))
   )
 
-(defn evaluate-original
-  "evaluate restored values"
+(defn evaluate
+  "absolute percentage error for output values"
   [output-vec target-vec]
-  (div (abs (axpy -1 target-vec output-vec)) target-vec)
-  )
+  (div (abs (axpy -1 target-vec output-vec)) target-vec))
 
-(defn evaluate-original-mape
+(defn evaluate-mape
   "MAPE calculations"
   [error-vec]
-  (* (/ (sum error-vec) (dim error-vec)) 100)
-  )
+  (* (/ (sum error-vec) (dim error-vec)) 100))
 
 (defn learning-rate
   "learninig rate decay algorithm"

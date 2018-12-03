@@ -88,35 +88,40 @@ master-prediction.example
 (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
 
 ;; evaluacija mreze, test podaci
-(evaluate-original-mape
-  (evaluate-original
+(evaluate-mape
+  (evaluate
     (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
     (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
     ))
 
+(evaluate
+  (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
+  (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
+  )
+
 (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
-(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
+(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
 
 ;; evaluacija sa trening podacima
 (def temp-variables5 (atom (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset))))
-(evaluate-original-mape
-  (evaluate-original
+(evaluate-mape
+  (evaluate
     (restore-output-vector target-trainig-dataset (predict @mreza-nn (:normalized-matrix input-trainig-dataset) @temp-variables5))
     (restore-output-vector target-trainig-dataset (:normalized-matrix target-trainig-dataset))
     ))
 
 
-(evaluate-original
-  (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
-  (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+(evaluate
+  (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
+  (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
   )
 
-(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
-(restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
+(restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
 
-(def nn (evaluate-original
-          (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3) 0)
-          (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset) 0)
+(def nn (evaluate
+          (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
+          (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
           ))
 
 
