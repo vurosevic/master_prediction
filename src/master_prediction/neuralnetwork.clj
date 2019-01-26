@@ -409,6 +409,7 @@ master-prediction.neuralnetwork
   (* start-speed-learning (Math/pow 0.95 epoch-num))
   )
 
+(def early-stopping-value (atom 100))
 (defn train-network
   "train network with input/target vectors"
   [network input-mtx target-mtx epoch-count mini-batch-size speed-learning alpha]
@@ -439,10 +440,13 @@ master-prediction.neuralnetwork
                     ))]
             (do
               (println y ": " mape-value)
-              (println "---------------------")
-              (write-file "mini_batch_018.csv" (str y "," mape-value "\n"))
-              ))))
+              (if (< mape-value @early-stopping-value)
+                (do
+                  (save-network-to-file network "early-stopping-net.csv")
+                  (reset! early-stopping-value mape-value)))
 
+              (write-file "konvergencija_batch.csv" (str y "," mape-value "\n"))
+              ))))
       )))
 
 (defn load-network-config

@@ -24,6 +24,11 @@ master-prediction.data
         (map #(map parse-float %) d)
         (map (fn [s] {:x  (vec (drop-last s))  :y (vector (last s))}) d)))
 
+(defn delete-file-if-exists
+  [filename]
+  (if (.exists (clojure.java.io/file (str "resources/" filename)))
+    (clojure.java.io/delete-file (str "resources/" filename))))
+
 (defn write-file [filename data]
   (with-open [w (clojure.java.io/writer  (str "resources/" filename) :append true)]
     (.write w data)))
@@ -32,6 +37,7 @@ master-prediction.data
   "save network state in file"
   [network filename]
   (do
+    (delete-file-if-exists filename)
     (write-file filename "CONFIGURATION\n")
     (write-file filename
                 (str (string/join ""

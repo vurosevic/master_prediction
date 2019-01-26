@@ -7,6 +7,7 @@ master-prediction.example
             [criterium.core :refer :all]
             [clojure.string :as string]
             [clojure.core :as core]
+            [clojure.java.io :as io]
             [master-prediction.data :refer :all]
             [master-prediction.neuralnetwork :refer :all]
             ))
@@ -46,20 +47,44 @@ master-prediction.example
 (entry (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables)) 0)
 
 
+(quick-bench
+  (predict @mreza-nn norm-in @temp-variables)
+  )
 
-
+(with-progress-reporting
+  (quick-bench
+    (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables))
+    )
+  )
 
 
 ;; kreiranje i treniranje mreze
-(def mreza-nn (atom (create-network 64 [80 200 80] 1)))
+(def mreza-nn (atom (create-network 64 [100 200 100] 1)))
+;;(def mreza-nn (atom (create-network 64 [100 100 100 100] 1)))
 ;; (xavier-initialization-update @mreza-nn)
 ;; (set-biases-value @mreza-nn 0)
 
 (def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 100 4
-                               0.015557 0.9))
+                               (:normalized-matrix target-trainig-dataset) 200 1
+                               0.0015557 0.9))
+
+(save-network-to-file @mreza-nn "test-1-01.csv")
+
+
+(def mreza-nn (atom (create-network-from-file "early-stopping-net.csv")))
+
+(let [pred-values (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
+      values (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
+      count-values (dim pred-values)]
+  (doseq [x (range count-values)]
+    (write-file "prognoza_1_01.csv" (str x "," (entry values x) "," (entry pred-values x) "\n"))
+    )
+  )
+
+(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
+(restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
 
 (-> input-trainig-dataset)
 
