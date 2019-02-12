@@ -29,7 +29,8 @@ master-prediction.neuralnetwork
                          temp-vector-matrix-gradient         ;; temp for calc weights for layers
                          temp-vector-matrix-delta-biases     ;; delta biases for layers
                          temp-vector-matrix-biases           ;; temp for calc biases for layers
-                         temp-prev-delta-vector-matrix-delta ;; previous delta vector matrix layers
+                         temp-prev-delta-vector-matrix-delta ;; previous delta vector matrix weights
+                         temp-prev-vector-matrix-delta-biases ;; previous delta vector matrix biases
                          temp-vector-matrix-delta-momentum   ;; delta weights for layers - momentum
                          temp-vector-vector-h-signals-var1   ;; temp variables for signals calculating
                          temp-vector-vector-h-signals-var2   ;; temp variables for signals calculating
@@ -248,6 +249,7 @@ master-prediction.neuralnetwork
                                                            (conj (#(create-null-matrix (first x) (second x)))))
                                                          (vector (create-null-matrix (first (last (map vector tmp1 tmp2)))
                                                                                      (second (last (map vector tmp1 tmp2)))))))
+        temp-prev-vector-matrix-delta-biases (vec (for [x tmp2] (fge x 1 (repeat x 0))))
         temp-vector-matrix-delta-momentum (vec (concat (for [x (take (dec (count (map vector tmp1 tmp2))) (map vector tmp1 tmp2))]
                                                          (conj (#(create-null-matrix (first x) (second x)))))
                                                        (vector (create-null-matrix (first (last (map vector tmp1 tmp2)))
@@ -275,6 +277,7 @@ master-prediction.neuralnetwork
                     temp-vector-matrix-delta-biases
                     temp-vector-matrix-biases
                     temp-prev-delta-vector-matrix-delta
+                    temp-prev-vector-matrix-delta-biases
                     temp-vector-matrix-delta-momentum
                     temp-vector-vector-h-signals-var1
                     temp-vector-vector-h-signals-var2
@@ -303,11 +306,17 @@ master-prediction.neuralnetwork
   "save delta matrix for momentum"
   [temp-vars]
   (let [delta-matrix (:temp-vector-matrix-delta temp-vars)
+        delta-biases (:temp-vector-matrix-delta-biases temp-vars)
         prev-delta-matrix (:temp-prev-delta-vector-matrix-delta temp-vars)
+        prev-delta-biases (:temp-prev-vector-matrix-delta-biases temp-vars)
         layers-count (count delta-matrix)]
     (for [x (range layers-count)]
-      (copy! (nth delta-matrix x) (nth prev-delta-matrix x)))
+      (do
+        (copy! (nth delta-matrix x) (nth prev-delta-matrix x))
+        (copy! (nth delta-biases x) (nth prev-delta-biases x))
+        )
     )
+   )
   )
 
 (defn learning-once
@@ -425,24 +434,16 @@ master-prediction.neuralnetwork
 (defn learning-once2
   "learn network with one input vector"
   [network inputmtx no targetmtx temp-vars speed-learning alpha mini-batch-size]
-  (let [hidden-layers (take (dec (count (:layers network))) (:layers network))
-        output-layer (last (:layers network))
-        layers (:layers network)
-        config (:config network)
+  (let [layers (:layers network)
         trans-weights (:trans-weights temp-vars)
-        temp-matrix (:layers-output temp-vars)
         temp-matrix-only (:layers-output-only temp-vars)
 
         temp-all-vector-o-signals (last (:temp-all-vector-vector-h-signals temp-vars))
         temp-all-vector-o-signals2 (:temp-all-vector-o-signals2 temp-vars)
         temp-all-vector-vector-h-signals (:temp-all-vector-vector-h-signals temp-vars)
         temp-vector-matrix-gradient (:temp-vector-matrix-gradient temp-vars)
-        temp-vector-matrix-biases (:temp-vector-matrix-biases temp-vars)
 
-        input (submatrix inputmtx 0 0 (inc (first (:config network))) 1)
         inputm (get-output-matrix inputmtx)
-        ;; target (submatrix targetmtx 0 no (last (:config network)) 1)
-        temp-matrix-input (conj temp-matrix input)
         coef-speed (/ speed-learning mini-batch-size)
         ]
     (do
@@ -475,13 +476,12 @@ master-prediction.neuralnetwork
               temp-h-signals-prev (nth (:temp-all-vector-vector-h-signals temp-vars) (dec x))
               wght (get-weights-matrix (nth layers x))
               temp-signal-var1 (nth (:temp-vector-vector-h-signals-var1 temp-vars) x)
-              temp-signal-var2 (nth (:temp-vector-vector-h-signals-var2 temp-vars) (dec x))
-              ]
+              temp-signal-var2 (nth (:temp-vector-vector-h-signals-var2 temp-vars) (dec x))]
           (do
-
             (dtanh! (nth temp-matrix-only (dec x)) temp-h-signals-prev)
             (doseq [sx (range (ncols temp-h-signals))]
-                (let [scol (col temp-h-signals sx)
+                (let [
+                      scol (col temp-h-signals sx)
                       ident-mtx (prepare-zero-matrix (dim scol))
                       unit-mtx (submatrix unit-matrix 0 0 1 (dim scol))
                       prev-scol (col temp-h-signals-prev sx)]
@@ -492,8 +492,6 @@ master-prediction.neuralnetwork
                   (mm! 1 ident-mtx wght 0 temp-signal-var1)
                   (mm! 1 unit-mtx temp-signal-var1 0 temp-signal-var2)
                   (mul! (row temp-signal-var2 0) prev-scol prev-scol)
-
-                  ;;(mul! (row (mm unit-mtx (mm ident-mtx wght)) 0) prev-scol prev-scol)
                   )
                 )
 
@@ -506,44 +504,22 @@ master-prediction.neuralnetwork
         (let [signals (nth temp-all-vector-vector-h-signals x)
               col-sig (ncols signals)
               rows-sig (mrows signals)
-              sig-vec (submatrix unit-matrix 0 0 rows-sig 1)
-              ident-mtx (prepare-zero-matrix (mrows signals))
               out-mtx (nth temp-matrix-only (dec x))
               rows-out (mrows out-mtx)
-              temp-mtx-gradient (nth temp-vector-matrix-gradient x)
-              temp-mtx-delta (nth (:temp-vector-matrix-delta temp-vars) x)
-              ;;temp-mtx-gradient (trans (nth temp-vector-matrix-gradient x))
-              ;;temp-mtx-delta (trans (nth (:temp-vector-matrix-delta temp-vars) x))
-              ]
-
+              temp-mtx-delta (nth (:temp-vector-matrix-delta temp-vars) x)]
           (doseq [x-inter (range col-sig)]
-            ;;            (mm! 1 (submatrix out-mtx 0 x-inter rows-out 1) (trans (submatrix signals 0 x-inter rows-sig 1)) 1 temp-mtx-delta)
-
-            (mm! 1 (submatrix out-mtx 0 x-inter rows-out 1) (trans (submatrix signals 0 x-inter rows-sig 1)) 0 temp-mtx-gradient)
-            (axpy! temp-mtx-gradient temp-mtx-delta)
-
+            (mm! 1 (submatrix out-mtx 0 x-inter rows-out 1) (trans (submatrix signals 0 x-inter rows-sig 1)) 1 temp-mtx-delta)
             )))
 
       ;; compute and accumulate input-hidden weight gradients
       (let [signals (nth temp-all-vector-vector-h-signals 0)
             col-sig (ncols signals)
             rows-sig (mrows signals)
-            sig-vec (submatrix unit-matrix 0 0 rows-sig 1)
             rows-out (mrows inputm)
-            ident-mtx (prepare-zero-matrix (mrows signals))
-            ;;temp-mtx-gradient (trans (nth temp-vector-matrix-gradient 0))
-            ;;temp-mtx-delta (trans (nth (:temp-vector-matrix-delta temp-vars) 0))
-            temp-mtx-gradient (nth temp-vector-matrix-gradient 0)
             temp-mtx-delta (nth (:temp-vector-matrix-delta temp-vars) 0)]
 
         (doseq [x-inter (range col-sig)]
-          ;; reset to zero
-          ;;(entry! (dia ident-mtx) 0)
-          ;;(axpy! (col signals x-inter) (dia ident-mtx))
-
-          ;;(mm! 1 sig-vec (trans (submatrix inputm 0 x-inter rows-out 1)) 0 temp-mtx-gradient)
-          (mm! 1 (submatrix inputm 0 x-inter rows-out 1) (trans (submatrix signals 0 x-inter rows-sig 1)) 0 temp-mtx-gradient)
-          (axpy! temp-mtx-gradient temp-mtx-delta)
+          (mm! 1 (submatrix inputm 0 x-inter rows-out 1) (trans (submatrix signals 0 x-inter rows-sig 1)) 1 temp-mtx-delta)
           ))
 
       ;;compute and accumulate bias gradients
@@ -553,9 +529,6 @@ master-prediction.neuralnetwork
               sig-vec (submatrix unit-matrix 0 0 col-sig 1)]
           (do
             (mm! 1 signals sig-vec 1 (nth (:temp-vector-matrix-delta-biases temp-vars) x))
-
-            ;;(axpy! (col (mm signals sig-vec) 0)
-            ;;       (col (nth (:temp-vector-matrix-delta-biases temp-vars) x) 0))
             )))
 
       ;; update weights and biases
@@ -570,8 +543,13 @@ master-prediction.neuralnetwork
 
         ;; momentum, if alpha <> 0
         (if (not (= alpha 0))
-        (axpy! alpha (nth (:temp-prev-delta-vector-matrix-delta temp-vars) x)
-          (nth trans-weights x)
+          (do
+            (axpy! alpha (nth (:temp-prev-delta-vector-matrix-delta temp-vars) x)
+                   (nth trans-weights x))
+
+            (axpy! alpha (nth (:temp-prev-vector-matrix-delta-biases temp-vars) x)
+            (get-bias-vector (nth layers x)))
+
         )))
 
         )
@@ -627,6 +605,16 @@ master-prediction.neuralnetwork
         temp-vars2 (create-temp-record network (:normalized-matrix input-test-dataset))
         mini-batch-seg (conj (map #(vector %1 %2) (range 0 line-count mini-batch-size) (range mini-batch-size line-count mini-batch-size))
                       [(reduce max (range 0 line-count mini-batch-size)) line-count])
+
+        ffirst-seg (first (nth mini-batch-seg 0))
+        fsecond-seg (second (nth mini-batch-seg 0))
+        finput-segment (submatrix input-mtx 0 ffirst-seg col-count (- fsecond-seg ffirst-seg))
+        ftemp-vars (create-temp-record network finput-segment)
+
+        lfirst-seg (first (last mini-batch-seg))
+        lsecond-seg (second (last mini-batch-seg))
+        linput-segment (submatrix input-mtx 0 lfirst-seg col-count (- lsecond-seg lfirst-seg))
+        ltemp-vars (create-temp-record network linput-segment)
         ]
     (doseq [y (range epoch-count)]
       (doseq [x (shuffle (range (count mini-batch-seg)))]
@@ -634,7 +622,11 @@ master-prediction.neuralnetwork
               second-seg (second (nth mini-batch-seg x))
               input-segment (submatrix input-mtx 0 first-seg col-count (- second-seg first-seg))
               target-segment (submatrix target-mtx 0 first-seg tcol-count (- second-seg first-seg))
-              temp-vars (create-temp-record network input-segment)]
+              ;;temp-vars (create-temp-record network input-segment)
+              temp-vars (if (= x 0)
+                          ftemp-vars
+                          ltemp-vars)
+              ]
           (learning-once2 network input-segment 1 target-segment temp-vars speed-learning alpha mini-batch-size)
           ;;(learning-once network input-segment 1 target-segment temp-vars speed-learning alpha)
           ;;(learning-once network input-segment 1 target-segment temp-vars (learning-rate speed-learning 0.85 y) alpha)

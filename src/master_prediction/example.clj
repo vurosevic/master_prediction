@@ -242,15 +242,27 @@ master-prediction.example
 
 (:normalized-matrix input-trainig-dataset)
 
-(def mreza-nn (atom (create-network 64 [100 200 100] 1)))
-(def mreza-nn2 (atom (create-network 64 [100 200 100] 1)))
-(def mreza-nn (atom (create-network 64 [100 100] 1)))
 
-(:layers @mreza-nn)
+(def mreza-nn2 (atom (create-network 64 [100 200 100] 1)))
+
+(def mreza-nn (atom (create-network 64 [100 200 200 100] 1)))
+(def mreza-nn (atom (create-network 64 [100 200 100] 1)))
+(def mreza-nn (atom (create-network 64 [200 200] 1)))
+(def mreza-nn (atom (create-network 64 [100 100] 1)))
+(def mreza-nn (atom (create-network 64 [100] 1)))
+
+(:layers @mreza-nn)0
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                     (:normalized-matrix target-trainig-dataset) 150 10
+                     (:normalized-matrix target-trainig-dataset) 300 20
                      0.0157 0.9))
+
+(with-progress-reporting
+  (quick-bench (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
+                              (:normalized-matrix target-trainig-dataset) 1 5
+                              0.01708557 0.9))
+  )
+
 
 (:layers-output temp-vars)
 (def temp-vars (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset)))
