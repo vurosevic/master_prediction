@@ -75,7 +75,7 @@ master-prediction.neuralnetwork
 
 (import '(java.util Random))
 (def normals
-  (let [r (Random.)]
+  (let [r (Random.)] ;; 4.7
     (map #(/ % 4.7) (take (* max-layers (* max-dim max-dim)) (repeatedly #(-> r .nextGaussian (* 0.9) (+ 1.0)))))
     ))
 
@@ -444,7 +444,7 @@ master-prediction.neuralnetwork
         temp-vector-matrix-gradient (:temp-vector-matrix-gradient temp-vars)
 
         inputm (get-output-matrix inputmtx)
-        coef-speed (/ speed-learning mini-batch-size)
+        coef-speed (/ speed-learning 1)                     ;;mini-batch-size
         ]
     (do
 
@@ -595,7 +595,7 @@ master-prediction.neuralnetwork
   ;;(* start-speed-learning (Math/pow 0.95 epoch-num))
   )
 
-(def early-stopping-value (atom 1.5))
+(def early-stopping-value (atom 2))
 (defn train-network
   "train network with input/target vectors"
   [network input-mtx target-mtx epoch-count mini-batch-size speed-learning alpha]
@@ -614,8 +614,7 @@ master-prediction.neuralnetwork
         lfirst-seg (first (last mini-batch-seg))
         lsecond-seg (second (last mini-batch-seg))
         linput-segment (submatrix input-mtx 0 lfirst-seg col-count (- lsecond-seg lfirst-seg))
-        ltemp-vars (create-temp-record network linput-segment)
-        ]
+        ltemp-vars (create-temp-record network linput-segment)]
     (doseq [y (range epoch-count)]
       (doseq [x (shuffle (range (count mini-batch-seg)))]
         (let [first-seg (first (nth mini-batch-seg x))
@@ -625,8 +624,7 @@ master-prediction.neuralnetwork
               ;;temp-vars (create-temp-record network input-segment)
               temp-vars (if (= x 0)
                           ftemp-vars
-                          ltemp-vars)
-              ]
+                          ltemp-vars)]
           (learning-once2 network input-segment 1 target-segment temp-vars speed-learning alpha mini-batch-size)
           ;;(learning-once network input-segment 1 target-segment temp-vars speed-learning alpha)
           ;;(learning-once network input-segment 1 target-segment temp-vars (learning-rate speed-learning 0.85 y) alpha)
@@ -643,10 +641,10 @@ master-prediction.neuralnetwork
         (do
          (println y ": " mape-value)
          (if (< mape-value @early-stopping-value)
-       (do
-        (save-network-to-file network "early-stopping-net.csv")
-                 (reset! early-stopping-value mape-value)))
-                      (write-file "konvergencija_minibatch2_200200.csv" (str y "," mape-value "\n"))
+         (do
+          (save-network-to-file network "early-stopping-net-5-200200.csv")
+                   (reset! early-stopping-value mape-value)))
+          (write-file "konvergencija_minibatch_5_200200.csv" (str y "," mape-value "\n"))
            ))))
 
         )))
