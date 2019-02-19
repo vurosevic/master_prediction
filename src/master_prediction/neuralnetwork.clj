@@ -13,10 +13,6 @@ master-prediction.neuralnetwork
 
                          trans-weights              ;; trans weights matrixes
 
-                         temp-all-vector-o-gradients             ;; matrix, row=1, output gradient, dim number of output neurons
-                         temp-all-vector-o-gradients2            ;; matrix, row=1, output gradient, dim number of output neurons
-                         temp-all-vector-vector-h-gradients      ;; output gradient, dim number of output neurons
-
                          temp-all-vector-o-signals               ;; matrix, row=1, output gradient, dim number of output neurons
                          temp-all-vector-o-signals2              ;; matrix, row=1, output gradient, dim number of output neurons
                          temp-all-vector-vector-h-signals        ;; output gradient, dim number of output neurons
@@ -224,10 +220,6 @@ master-prediction.neuralnetwork
         layers-output-only (vec (map #(get-output-matrix %) layers-output))
         trans-weights (vec (map #(trans (get-weights-matrix %)) (:layers network)))
 
-        temp-all-vector-o-gradients  (fge net-output-dim input-vec-dim (repeat net-output-dim 0))
-        temp-all-vector-o-gradients2 (fge net-output-dim input-vec-dim (repeat net-output-dim 0))
-        temp-all-vector-vector-h-gradients (vec (for [x tmp2] (fge x input-vec-dim (repeat x 0))))
-
         temp-all-vector-o-signals  (fge net-output-dim input-vec-dim (repeat net-output-dim 0))
         temp-all-vector-o-signals2 (fge net-output-dim input-vec-dim (repeat net-output-dim 0))
         temp-all-vector-vector-h-signals (vec (for [x tmp2] (fge x input-vec-dim (repeat x 0))))
@@ -263,9 +255,6 @@ master-prediction.neuralnetwork
     (->Tempvariable layers-output
                     layers-output-only
                     trans-weights
-                    temp-all-vector-o-gradients
-                    temp-all-vector-o-gradients2
-                    temp-all-vector-vector-h-gradients
                     temp-all-vector-o-signals
                     temp-all-vector-o-signals2
                     temp-all-vector-vector-h-signals
@@ -319,121 +308,10 @@ master-prediction.neuralnetwork
    )
   )
 
+;; novi nacin miniBatch
 (defn learning-once
   "learn network with one input vector"
-  [network inputmtx no targetmtx temp-vars speed-learning alpha]
-  (let [hidden-layers (take (dec (count (:layers network))) (:layers network))
-        output-layer (last (:layers network))
-        layers (:layers network)
-        config (:config network)
-        trans-weights (:trans-weights temp-vars)
-        temp-matrix (:layers-output temp-vars)
-        temp-matrix-only (:layers-output-only temp-vars)
-
-        temp-all-vector-o-gradients (last (:temp-all-vector-vector-h-gradients temp-vars))
-        temp-all-vector-o-gradients2 (:temp-all-vector-o-gradients2 temp-vars)
-        temp-all-vector-vector-h-gradients (:temp-all-vector-vector-h-gradients temp-vars)
-
-        temp-vector-o-gradients (last (:temp-vector-vector-h-gradients temp-vars))
-        temp-vector-o-gradients2 (:temp-vector-o-gradients2 temp-vars)
-        temp-vector-vector-h-gradients (:temp-vector-vector-h-gradients temp-vars)
-        input (submatrix inputmtx 0 0 (inc (first (:config network))) 1)
-        ;; target (submatrix targetmtx 0 no (last (:config network)) 1)
-        temp-matrix-input (conj temp-matrix input)
-        ]
-    (do
-      (entry! temp-vector-o-gradients 0)
-      (entry! (:temp-all-vector-o-gradients temp-vars) 0)
-      (entry! (:temp-all-vector-o-gradients2 temp-vars) 0)
-      (feed-forward network inputmtx temp-vars)
-
-      (if (not (= alpha 0))
-        (copy-matrix-delta network))
-
-      ;; calculate output gradients
-      (axpy! -1 (last temp-matrix-only) temp-all-vector-o-gradients)
-
-      (axpy! 1 targetmtx temp-all-vector-o-gradients)
-      (dtanh! (last temp-matrix-only) temp-all-vector-o-gradients2)
-      (mul! temp-all-vector-o-gradients2 temp-all-vector-o-gradients temp-all-vector-o-gradients)
-
-      ;; calculate hidden gradients
-      (doseq [x (range (- (count temp-matrix) 1) 0 -1)]
-        (let [temp-h-gradients (nth (:temp-all-vector-vector-h-gradients temp-vars) x)
-              temp-h-gradients-prev (nth (:temp-all-vector-vector-h-gradients temp-vars) (dec x))]
-          (do
-            ;; (mm! 1.0 (trans (get-weights-matrix (nth layers x))) temp-h-gradients
-            (mm! 1.0 (nth trans-weights x) temp-h-gradients
-                 0.0 temp-h-gradients-prev)
-            (mul! (nth temp-matrix-only (dec x)) temp-h-gradients-prev))))
-
-      ;; calculate average gradients
-      (doseq [layer-grad (range (count (:temp-vector-vector-h-gradients temp-vars)))]
-        (let [temp-unit-mtx (submatrix unit-matrix 0 0 (ncols inputmtx) 1)
-              curr-all-gradients (nth (:temp-all-vector-vector-h-gradients temp-vars) layer-grad)
-              curr-avg-gradients (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad)]
-
-          (mm! 1 curr-all-gradients temp-unit-mtx 0 curr-avg-gradients)
-          (scal! (/ 1 (ncols curr-all-gradients)) curr-avg-gradients)
-
-          )
-        )
-
-      ;; calculate average outputs
-      (doseq [layer-grad (range (count (:layers-output-only temp-vars)))]
-        (let [temp-unit-mtx (submatrix unit-matrix 0 0 (ncols (nth (:layers-output-only temp-vars) layer-grad)) 1)
-              curr-outputs (nth (:layers-output-only temp-vars) layer-grad)
-              curr-avg-outputs (submatrix (nth (:layers-output-only temp-vars) layer-grad) 0 0 (mrows curr-outputs) 1)]
-          (mm! 1 curr-outputs temp-unit-mtx 0 curr-avg-outputs)
-          (scal! (/ 1 (ncols curr-outputs)) curr-avg-outputs)
-
-          )
-        )
-
-      ;; calculate delta for weights
-      (doseq [row_o (range (- (count (:config network)) 2) -1 -1)]
-        (let [layer-out-vector (col (get-output-matrix (nth temp-matrix-input row_o)) 0)
-              cols-num (nth (take-last (dec (count config)) config) row_o)]
-          (doseq [x (range cols-num)]
-            (axpy! speed-learning layer-out-vector
-                   (col (nth (:temp-vector-matrix-delta temp-vars) row_o) x))
-            )))
-
-      (doseq [layer-grad (range (count (:temp-vector-vector-h-gradients temp-vars)))]
-        (let []
-          (doseq [x (range (nth (take-last (dec (count config)) config) layer-grad))]
-            (scal! (entry (row (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad) x) 0)
-                   (col (nth (:temp-vector-matrix-delta temp-vars) layer-grad) x)
-                   )))
-
-        (axpy! (nth (:temp-vector-matrix-delta temp-vars) layer-grad)
-               (nth trans-weights layer-grad)
-               )
-
-        ;; update biases
-        (mul! (nth (:temp-vector-vector-h-gradients temp-vars) layer-grad)
-              (get-bias-vector (nth layers layer-grad))
-              (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
-              )
-
-        (scal! speed-learning (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad))
-        (axpy! (nth (:temp-vector-matrix-delta-biases temp-vars) layer-grad)
-               (get-bias-vector (nth layers layer-grad)))
-
-        ;; momentum, if alpha <> 0
-        (if (not (= alpha 0))
-          (axpy! alpha (nth (:temp-prev-delta-vector-matrix-delta temp-vars) layer-grad)
-                 (nth trans-weights layer-grad)
-                 ))
-        )
-
-      ))
-  )
-
-;; novi nacin miniBatch
-(defn learning-once2
-  "learn network with one input vector"
-  [network inputmtx no targetmtx temp-vars speed-learning alpha mini-batch-size]
+  [network inputmtx targetmtx temp-vars speed-learning alpha]
   (let [layers (:layers network)
         trans-weights (:trans-weights temp-vars)
         temp-matrix-only (:layers-output-only temp-vars)
@@ -443,9 +321,7 @@ master-prediction.neuralnetwork
         temp-all-vector-vector-h-signals (:temp-all-vector-vector-h-signals temp-vars)
         temp-vector-matrix-gradient (:temp-vector-matrix-gradient temp-vars)
 
-        inputm (get-output-matrix inputmtx)
-        coef-speed (/ speed-learning 1)                     ;;mini-batch-size
-        ]
+        inputm (get-output-matrix inputmtx)]
     (do
 
       (entry! (:temp-all-vector-o-signals temp-vars) 0)
@@ -454,8 +330,7 @@ master-prediction.neuralnetwork
       (doseq [dd (range (count (:temp-prev-delta-vector-matrix-delta temp-vars)))]
         (entry! (nth (:temp-vector-matrix-delta temp-vars) dd) 0)
         (entry! (nth (:temp-prev-delta-vector-matrix-delta temp-vars) dd) 0)
-        (entry! (nth (:temp-vector-matrix-delta-biases temp-vars) dd) 0)
-        )
+        (entry! (nth (:temp-vector-matrix-delta-biases temp-vars) dd) 0))
 
       (feed-forward network inputmtx temp-vars)
 
@@ -463,7 +338,6 @@ master-prediction.neuralnetwork
         (copy-matrix-delta network))
 
       ;; compute output node signals
-
       (axpy! targetmtx temp-all-vector-o-signals2)
       (axpy! -1 (last temp-matrix-only) temp-all-vector-o-signals2)
       (dtanh! (last temp-matrix-only) temp-all-vector-o-signals)
@@ -492,12 +366,7 @@ master-prediction.neuralnetwork
                   (mm! 1 ident-mtx wght 0 temp-signal-var1)
                   (mm! 1 unit-mtx temp-signal-var1 0 temp-signal-var2)
                   (mul! (row temp-signal-var2 0) prev-scol prev-scol)
-                  )
-                )
-
-              )
-            )
-        )
+                  )))))
 
       ;;compute and accumulate hidden weight gradients using output signals
       (doseq [x (range (- (count layers) 1) 0 -1)]
@@ -534,11 +403,11 @@ master-prediction.neuralnetwork
       ;; update weights and biases
       (doseq [x (range (count layers))]
         ;; update weights
-        (axpy! coef-speed (nth (:temp-vector-matrix-delta temp-vars) x)
+        (axpy! speed-learning (nth (:temp-vector-matrix-delta temp-vars) x)
           (nth trans-weights x))
 
         ;; update biases
-        (axpy! coef-speed (nth (:temp-vector-matrix-delta-biases temp-vars) x)
+        (axpy! speed-learning (nth (:temp-vector-matrix-delta-biases temp-vars) x)
           (get-bias-vector (nth layers x)))
 
         ;; momentum, if alpha <> 0
@@ -549,13 +418,7 @@ master-prediction.neuralnetwork
 
             (axpy! alpha (nth (:temp-prev-vector-matrix-delta-biases temp-vars) x)
             (get-bias-vector (nth layers x)))
-
-        )))
-
-        )
-      )
-  )
-
+        ))))))
 
 (defn predict
   "feed forward propagation - prediction consumptions for input matrix"
@@ -575,8 +438,7 @@ master-prediction.neuralnetwork
 
       (throw (Exception.
                (str "Error. Input dimensions is not correct. Expected dimension is: " net-input-dim)))
-      ))
-  )
+      )))
 
 (defn evaluate
   "absolute percentage error for output values"
@@ -625,9 +487,8 @@ master-prediction.neuralnetwork
               temp-vars (if (= x 0)
                           ftemp-vars
                           ltemp-vars)]
-          (learning-once2 network input-segment 1 target-segment temp-vars speed-learning alpha mini-batch-size)
-          ;;(learning-once network input-segment 1 target-segment temp-vars speed-learning alpha)
-          ;;(learning-once network input-segment 1 target-segment temp-vars (learning-rate speed-learning 0.85 y) alpha)
+          (learning-once network input-segment target-segment temp-vars speed-learning alpha)
+          ;;(learning-once network input-segment target-segment temp-vars (learning-rate speed-learning 0.85 y) alpha)
           ))
 
       (let [os (mod y 1)]
@@ -642,9 +503,9 @@ master-prediction.neuralnetwork
          (println y ": " mape-value)
          (if (< mape-value @early-stopping-value)
          (do
-          (save-network-to-file network "early-stopping-net-5-200200.csv")
+          (save-network-to-file network "early-stopping-net-test.csv")
                    (reset! early-stopping-value mape-value)))
-          (write-file "konvergencija_minibatch_5_200200.csv" (str y "," mape-value "\n"))
+          (write-file "konvergencija_minibatch_test.csv" (str y "," mape-value "\n"))
            ))))
 
         )))

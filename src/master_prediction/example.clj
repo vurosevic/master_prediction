@@ -254,14 +254,34 @@ master-prediction.example
 (:layers @mreza-nn)0
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                     (:normalized-matrix target-trainig-dataset) 300 20
-                     0.0157 0.9))
+                     (:normalized-matrix target-trainig-dataset) 100 20
+                     0.00357 0.9))
+;; 0.0157
+;; 0.00557
+;; 0.01057
 
 (with-progress-reporting
-  (quick-bench (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                              (:normalized-matrix target-trainig-dataset) 1 5
-                              0.01708557 0.9))
+     (quick-bench (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
+                                 (:normalized-matrix target-trainig-dataset) 1 20
+                                 0.01708557 0.9))
+     )
+
+(def input-test [2010 9 25 7 0 3424 3060 2861 2772 2761 2971 3435 4015 4195 4261 4215
+                 4268 4225 4161 4047 4003 3995 3992 4365 4956 4849 4670 4273 3848 2761
+                 4956 93622 14 19.5 25 15.96 14 19.27 25 15.82 23.27 48.95 1011.73 3452
+                 3104 2886 2794 2757 2890 3084 3617 4017 28601 17 18.59090909 22 17.80976667
+                 17 18.59090909 22 17.62029836 28.68181818 68 1002.318182])
+
+(def norm-in (normalize-input-vector input-test input-trainig-dataset))
+
+(def temp-variables (atom (create-temp-record @mreza-nn norm-in)))
+
+(with-progress-reporting
+(quick-bench
+  (predict @mreza-nn norm-in @temp-variables)
   )
+)
+
 
 
 (:layers-output temp-vars)
