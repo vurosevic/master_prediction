@@ -14,8 +14,12 @@ A Clojure library designed to ... well, that part is up to you.
 > ;; train network with input matrix / target matrix
 
 > ;; 500 is number of epochs,
+
 > ;; 10 is size of minibatch,
+
+
 > ;; 0.0015 is speed learning
+
 > ;; 0.9 is momentum coeficient
 
 > (train-network @net-nn (:normalized-matrix input-trainig-dataset)
