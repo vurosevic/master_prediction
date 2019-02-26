@@ -27,9 +27,11 @@ A Clojure library designed to ... well, that part is up to you.
 > ;; Evaluation by MAPE metric
 
 > ;; first we must to create temp variables
+
 > (def temp-var (atom (create-temp-record @net-nn (:normalized-matrix input-test-dataset))))
 
 > ;; next, we can do evaluation
+
 > (evaluate-mape
     (evaluate
       (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-var))
@@ -47,12 +49,15 @@ A Clojure library designed to ... well, that part is up to you.
                  17 18.59090909 22 17.62029836 28.68181818 68 1002.318182])
 
 > (def norm-in (normalize-input-vector input-test input-trainig-dataset))
+
 > (def temp-variables (atom (create-temp-record @net norm-in)))
 
 > ;; now we can predict, but result is normalized
+
 > (predict @net-nn norm-in @temp-variables)
 
 > ;; if we can see real value, we must restore value
+
 > (restore-output-vector target-trainig-dataset (predict @net-nn norm-in @temp-variables))
 
 #### Save state in file
