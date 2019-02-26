@@ -255,7 +255,8 @@ master-prediction.example
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
                      (:normalized-matrix target-trainig-dataset) 100 20
-                     0.00357 0.9))
+                     0.000157 0.9))
+;; 0.00357
 ;; 0.0157
 ;; 0.00557
 ;; 0.01057
@@ -309,13 +310,13 @@ master-prediction.example
 (save-network-to-file @mreza-nn "test-1-01.csv")
 
 
-(def mreza-nn (atom (create-network-from-file "early-stopping-net.csv")))
+(def mreza-nn (atom (create-network-from-file "early-stopping-net-10-100.csv")))
 
 (let [pred-values (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
       values (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
       count-values (dim pred-values)]
   (doseq [x (range count-values)]
-    (write-file "prognoza_1_01.csv" (str x "," (entry values x) "," (entry pred-values x) "\n"))
+    (write-file "prognoza_10_100.csv" (str x "," (entry values x) "," (entry pred-values x) "\n"))
     )
   )
 

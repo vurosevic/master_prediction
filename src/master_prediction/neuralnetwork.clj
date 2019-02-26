@@ -187,8 +187,8 @@ master-prediction.neuralnetwork
       ;; prepare weights for hidden layers
       (doseq [x (range (count layer-neurons))]
         (scal! (Math/sqrt (/ 2 (+ (first (nth layer-neurons x)) (second (nth layer-neurons x)))))
-               (submatrix (nth layers x) (dec (mrows (nth layers x))) (ncols (nth layers x)))
-               )))))
+                       (submatrix (nth layers x) (dec (mrows (nth layers x))) (ncols (nth layers x))))
+               ))))
 
 (defn create-network
   "create new neural network"
