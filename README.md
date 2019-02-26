@@ -1,6 +1,8 @@
 # Implementation of neural networks for predicting the consumption of electricity using the programming language of Clojure
 
-A Clojure library designed to ... well, that part is up to you.
+### Master thesis
+
+## The first implementation - source code
 
 ## Usage
 
