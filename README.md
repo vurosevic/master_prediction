@@ -45,7 +45,7 @@
 
 #### How to use network
 
-> ;; first, we must prepate input vector and temp variables
+> ;; first, we must prepare input vector and temp variables
 
 > (def input-test [2010 9 25 7 0 3424 3060 2861 2772 2761 2971 3435 4015 4195 4261 4215
                  4268 4225 4161 4047 4003 3995 3992 4365 4956 4849 4670 4273 3848 2761
