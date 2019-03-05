@@ -69,7 +69,7 @@ master-prediction.example
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
                      (:normalized-matrix target-trainig-dataset) 500 10
-                     0.00357 0.9))
+                     0.0157 0.9))
 ;; 0.00357
 ;; 0.0157
 ;; 0.00557
@@ -107,3 +107,7 @@ master-prediction.example
   (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
   (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
   )
+
+
+(create-predict-file @mreza-nn (:normalized-matrix input-test-dataset)
+                     target-test-dataset "test-file.csv")
