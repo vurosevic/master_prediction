@@ -19,7 +19,6 @@
 
 > ;; 10 is size of minibatch,
 
-
 > ;; 0.0015 is speed learning
 
 > ;; 0.9 is momentum coeficient

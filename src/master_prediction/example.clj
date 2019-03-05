@@ -57,70 +57,15 @@ master-prediction.example
     )
   )
 
-
 ;; creating and training neural network
-(def mreza-nn (atom (create-network 64 [100 200 100] 1)))
+
 (def mreza-nn (atom (create-network 64 [100 200 200 100] 1)))
+(def mreza-nn (atom (create-network 64 [100 200 100] 1)))
 (def mreza-nn (atom (create-network 64 [200 200] 1)))
 (def mreza-nn (atom (create-network 64 [100 100] 1)))
 (def mreza-nn (atom (create-network 64 [100] 1)))
-
 
 (def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
-
-(quick-bench (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                     (:normalized-matrix target-trainig-dataset) 1 2
-                     0.01708557 0.9))
-
-(quick-bench (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                            (:normalized-matrix target-trainig-dataset) 1 1
-                            0.0015557 0.9))
-
-(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                     (:normalized-matrix target-trainig-dataset) 1 1
-                     0.0015557 0.9))
-
-(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 120 1
-                               0.0015557 0.9))
-
-(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                     (:normalized-matrix target-trainig-dataset) 200 2
-                     0.0170807557 0.9))
-
-(time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                     (:normalized-matrix target-trainig-dataset) 20 15
-                     0.0001570807557 0.9))
-
-;; test
-(:normalized-matrix input-trainig-dataset)
-(:normalized-matrix target-trainig-dataset)
-(def temp-vars (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset)))
-(def temp-vars2 (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset)))
-(:layers-output-only temp-vars)
-(last (:layers-output-only temp-vars))
-(:layers-output-only temp-vars2)
-(axpy -1 (:normalized-matrix target-trainig-dataset) (last (:layers-output-only temp-vars)))
-
-(dtanh! (:normalized-matrix target-trainig-dataset) (last (:layers-output-only temp-vars)))
-
-(last (:temp-all-vector-vector-h-gradients temp-vars))
-
-(last (:temp-all-vector-vector-h-signals temp-vars))
-
-
-
-
-
-(def mreza-nn2 (atom (create-network 64 [100 200 100] 1)))
-
-(def mreza-nn (atom (create-network 64 [100 200 200 100] 1)))
-(def mreza-nn (atom (create-network 64 [100 200 100] 1)))
-(def mreza-nn (atom (create-network 64 [200 200] 1)))
-(def mreza-nn (atom (create-network 64 [100 100] 1)))
-(def mreza-nn (atom (create-network 64 [100] 1)))
-
-(:layers @mreza-nn)0
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
                      (:normalized-matrix target-trainig-dataset) 500 10
@@ -151,73 +96,7 @@ master-prediction.example
   )
 )
 
-
-
-(:layers-output temp-vars)
-(def temp-vars (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset)))
-(def temp-vars2 (create-temp-record @mreza-nn2 (:normalized-matrix input-trainig-dataset)))
-(learning-once2 @mreza-nn (:normalized-matrix input-trainig-dataset) 1
-                (:normalized-matrix target-trainig-dataset)
-                temp-vars 0.0015 0 1)
-
-(learning-once @mreza-nn2 (:normalized-matrix input-trainig-dataset) 1
-                (:normalized-matrix target-trainig-dataset)
-                temp-vars2 0.0015 0)
-
-(quick-bench
-  (learning-once2 @mreza-nn (:normalized-matrix input-trainig-dataset) 1
-                  (:normalized-matrix target-trainig-dataset)
-                  temp-vars 0.001 0.9 10)
-  )
-
-(fgd 5 [1 1 1 1])
-;; end test
-
-
-
-(save-network-to-file @mreza-nn "test-1-01.csv")
-
-
-(def mreza-nn (atom (create-network-from-file "early-stopping-net-10-100.csv")))
-
-(let [pred-values (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
-      values (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
-      count-values (dim pred-values)]
-  (doseq [x (range count-values)]
-    (write-file "prognoza_10_100.csv" (str x "," (entry values x) "," (entry pred-values x) "\n"))
-    )
-  )
-
-(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
-(restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
-
-(-> input-trainig-dataset)
-
-(nth (:layers @mreza-nt) 0)
-(get-bias-vector (nth (:layers @mreza-nt) 0))
-(submatrix (nth (:layers @mreza-nt) 0) 0 1 80 1)
-
-(nth (:layers @mreza-nn) 0)
-(get-bias-vector (nth (:layers @mreza-nn) 0))
-(submatrix (nth (:layers @mreza-nn) 0) 0 1 80 1)
-
-(mul
-  (nth (:temp-vector-vector-h-gradients @temp-variables3) 0)
-  (get-bias-vector (nth (:layers @mreza-nt) 0))
-  )
-
-(copy (get-bias-vector (nth (:layers @mreza-nt) 0)))
-(get-bias-vector (nth (:layers @mreza-nt) 0))
-(get-bias-vector (nth (:layers @mreza-nn) 0))
-
-(mul
-  (nth (:temp-vector-vector-h-gradients @temp-variables3) 0)
-  (copy (get-bias-vector (nth (:layers @mreza-nn) 0)))
-  )
-
-(predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
-
-;; evaluacija mreze, test podaci
+;; evaluation
 (evaluate-mape
   (evaluate
     (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
@@ -228,50 +107,3 @@ master-prediction.example
   (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
   (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
   )
-
-(predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
-(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
-
-;; evaluacija sa trening podacima
-(def temp-variables5 (atom (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset))))
-(evaluate-mape
-  (evaluate
-    (restore-output-vector target-trainig-dataset (predict @mreza-nn (:normalized-matrix input-trainig-dataset) @temp-variables5))
-    (restore-output-vector target-trainig-dataset (:normalized-matrix target-trainig-dataset))
-    ))
-
-
-(evaluate
-  (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
-  (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
-  )
-
-(restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
-(restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
-
-(def nn (evaluate
-          (restore-output-vector target-test-dataset (predict @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3))
-          (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
-          ))
-
-
-
-
-(predict @mreza-nn (:normalized-matrix input-test-dataset) (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset)))
-
-(feed-forward @mreza-nn (:normalized-matrix input-test-dataset) @temp-variables3)
-(:layers-output @temp-variables3)
-
-(def temp-variables2 (atom (create-temp-record @mreza-nn (:normalized-matrix input-trainig-dataset))))
-(quick-bench
-  (learning-once @mreza-nn (:normalized-matrix input-trainig-dataset) 4 (:normalized-matrix target-trainig-dataset)
-                   @temp-variables2 0.015 0.4)
-  )
-
-(read-data-from-csv "resources/data_prediction.csv")
-
-(:layers @mreza-nn)
-(:layers @mreza-nt)
-
-(get-bias-vector (nth (:layers @mreza-nn) 4))
-(get-bias-vector (nth (:layers @mreza-nt) 4))

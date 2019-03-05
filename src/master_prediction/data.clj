@@ -7,7 +7,7 @@ master-prediction.data
 
 (defrecord Normalizedmatrix [
                              normalized-matrix
-                             restore-coeficients                ;; matrix 2 x num of cols, min and max value for each columns
+                             restore-coeficients            ;; matrix 2 x num of cols, min and max value for each columns
                              ])
 
 (defn parse-float [s]
@@ -22,7 +22,7 @@ master-prediction.data
         (string/split d #"\n")
         (map #(string/split % #",") d)
         (map #(map parse-float %) d)
-        (map (fn [s] {:x  (vec (drop-last s))  :y (vector (last s))}) d)))
+        (map (fn [s] {:x (vec (drop-last s)) :y (vector (last s))}) d)))
 
 (defn delete-file-if-exists
   [filename]
@@ -30,7 +30,7 @@ master-prediction.data
     (clojure.java.io/delete-file (str "resources/" filename))))
 
 (defn write-file [filename data]
-  (with-open [w (clojure.java.io/writer  (str "resources/" filename) :append true)]
+  (with-open [w (clojure.java.io/writer (str "resources/" filename) :append true)]
     (.write w data)))
 
 (defn save-network-to-file
@@ -43,7 +43,7 @@ master-prediction.data
                 (str (string/join ""
                                   (drop-last
                                     (reduce str (map str (:config network)
-                                            (replicate (count (:config network)) ",")) ))) "\n"))
+                                                     (replicate (count (:config network)) ","))))) "\n"))
     (write-file filename "LAYERS\n")
     (doall
       (doseq [y (range (count (:layers network)))]
@@ -53,7 +53,7 @@ master-prediction.data
                       (str (string/join ""
                                         (drop-last
                                           (reduce str (map str (col (nth (:layers network) y) x)
-                                                      (replicate (mrows (nth (:layers network) y)) ","))))) "\n")))))
+                                                           (replicate (mrows (nth (:layers network) y)) ","))))) "\n")))))
     (write-file filename "END\n")))
 
 
@@ -77,9 +77,9 @@ master-prediction.data
   [input-vector input-min input-max result-vector]
   (let [temp-min-vec (fv (repeat (dim input-vector) input-min))
         temp-max-vec (fv (repeat (dim input-vector) input-max))
-        temp-maxmin  (fv (repeat (dim input-vector) input-max))
-        temp-result  (fv (repeat (dim result-vector) 0))
-        temp-result2  (fv (repeat (dim result-vector) 0))]
+        temp-maxmin (fv (repeat (dim input-vector) input-max))
+        temp-result (fv (repeat (dim result-vector) 0))
+        temp-result2 (fv (repeat (dim result-vector) 0))]
     (do
       (axpy! input-vector temp-result)
       (axpy! -1 temp-min-vec temp-maxmin)
@@ -89,7 +89,7 @@ master-prediction.data
       )))
 
 (defn append-biases-to-normalized-matrix
-  [norm-matrix ]
+  [norm-matrix]
   (let [dim-input-vector (mrows (:normalized-matrix norm-matrix))
         record-count (ncols (:normalized-matrix norm-matrix))
         temp-matrix-b (fge (inc dim-input-vector) record-count (repeat 1))
@@ -107,7 +107,7 @@ master-prediction.data
       (doseq [x (range (mrows input-matrix))]
         (let [min-value (get-min-value (row input-matrix x))
               max-value (get-max-value (row input-matrix x))
-              row-coef  (row coef-matrix x)
+              row-coef (row coef-matrix x)
               ]
           (do
             (entry! row-coef 0 min-value)
@@ -132,7 +132,7 @@ master-prediction.data
         output-norm-vector (fge (inc (mrows input)) (ncols input) (repeat (* (inc (mrows input)) (ncols input)) 1))]
     (if (= (mrows input) dim-coef)
       (doseq [x (range dim-coef)]
-      ;; (doseq [x (range (dec dim-coef))]
+        ;; (doseq [x (range (dec dim-coef))]
         (let [val-max (entry (row coeficients x) 1)
               val-min (entry (row coeficients x) 0)
               val-maxmin (- val-max val-min)
@@ -142,7 +142,7 @@ master-prediction.data
           )
         )
       (throw (Exception. (str "Error: Input vector does not match the norm input vector."))))
-      (-> output-norm-vector)
+    (-> output-norm-vector)
     ))
 
 (defn restore-output-vector
