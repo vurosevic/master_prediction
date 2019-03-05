@@ -555,7 +555,7 @@ master-prediction.neuralnetwork
     (->Neuronetwork layers
                     config)))
 
-(defn create-predict-file1
+(defn create-predict-file
   [net input target filename]
   (let [temp-variables (create-temp-record net input)
         pred-values (restore-output-vector target (predict net input temp-variables))
