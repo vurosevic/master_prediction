@@ -194,7 +194,6 @@ master-prediction.neuralnetwork
         layers-count (count config)
         tmp1 (take (dec (count config)) config)
         tmp2 (take-last (dec (count config)) config)
-        - (reset! temp-current-val 0)
         layers (for [x (take (count (map vector tmp1 tmp2)) (map vector tmp1 tmp2))]
                (conj (#(create-random-matrix (inc (second x)) (inc (first x))))))
         - (doseq [x (range (dec layers-count))]
