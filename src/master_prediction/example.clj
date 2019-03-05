@@ -12,13 +12,11 @@ master-prediction.example
             [master-prediction.neuralnetwork :refer :all]
             ))
 
-;; snimanje i ucitavanje konfiguracije
-(def mreza-nn (atom (create-network-from-file "nn-mreza-122.csv")))
-(save-network-to-file @mreza-nn "nn-mreza-126.csv")
+;; loading and saving neural network
+(def mreza-nn (atom (create-network-from-file "early-stopping-net-10-100.csv")))
+(save-network-to-file @mreza-nn "nn-net-123.csv")
 
-(-> @mreza-nt)
-
-;; predikcija za specificirani ulazni vektor
+;; prediction for specified input vector
 (def input-test [2010 9 25 7 0 3424 3060 2861 2772 2761 2971 3435 4015 4195 4261 4215
                  4268 4225 4161 4047 4003 3995 3992 4365 4956 4849 4670 4273 3848 2761
                  4956 93622 14 19.5 25 15.96 14 19.27 25 15.82 23.27 48.95 1011.73 3452
@@ -43,13 +41,15 @@ master-prediction.example
 
 (def temp-variables (atom (create-temp-record @mreza-nn norm-in)))
 (predict @mreza-nn norm-in @temp-variables)
+
 (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables))
 (entry (restore-output-vector target-trainig-dataset (predict @mreza-nn norm-in @temp-variables)) 0)
 
-
+(with-progress-reporting
 (quick-bench
   (predict @mreza-nn norm-in @temp-variables)
   )
+)
 
 (with-progress-reporting
   (quick-bench
@@ -58,15 +58,13 @@ master-prediction.example
   )
 
 
-;; kreiranje i treniranje mreze
+;; creating and training neural network
 (def mreza-nn (atom (create-network 64 [100 200 100] 1)))
 (def mreza-nn (atom (create-network 64 [100 200 200 100] 1)))
 (def mreza-nn (atom (create-network 64 [200 200] 1)))
 (def mreza-nn (atom (create-network 64 [100 100] 1)))
 (def mreza-nn (atom (create-network 64 [100] 1)))
-;;(def mreza-nn (atom (create-network 64 [100 100 100 100] 1)))
-;; (xavier-initialization-update @mreza-nn)
-;; (set-biases-value @mreza-nn 0)
+
 
 (def temp-variables3 (atom (create-temp-record @mreza-nn (:normalized-matrix input-test-dataset))))
 
@@ -83,7 +81,7 @@ master-prediction.example
                      0.0015557 0.9))
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                               (:normalized-matrix target-trainig-dataset) 20 1
+                               (:normalized-matrix target-trainig-dataset) 120 1
                                0.0015557 0.9))
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
@@ -112,135 +110,6 @@ master-prediction.example
 
 
 
-(nth (:temp-all-vector-vector-h-signals temp-vars) 2)
- (get-weights-matrix (nth (:layers @mreza-nn) 3))
-
-(get-weights-matrix (nth (:layers @mreza-nn) 3))
-
-(sum (get-weights-matrix (nth (:layers @mreza-nn) 2)))
-
-(mm (trans (nth (:temp-all-vector-vector-h-signals temp-vars) 3))
-    (get-weights-matrix (nth (:layers @mreza-nn) 3))
-    )
-
-(mm (trans (nth (:temp-all-vector-vector-h-signals temp-vars) 0))
-    (get-weights-matrix (nth (:layers @mreza-nn) 0))
-    )
-
-(ncols (mm (trans (nth (:temp-all-vector-vector-h-signals temp-vars) 3))
-           (get-weights-matrix (nth (:layers @mreza-nn) 3))
-           ))
-
-(dim (col (last (:temp-all-vector-vector-h-signals temp-vars)) 1))
-
-(def temp-matrix-only (:layers-output-only temp-vars))
-(nth temp-matrix-only 2)
-
-(mul (nth temp-matrix-only 2) (nth temp-matrix-only 2))
-
-(ncols (get-weights-matrix (nth (:layers @mreza-nn) 3)))
-(range (- (count (:layers @mreza-nn)) 1) 0 -1)
-
-;; kreiranje dijagonalne matrice
-(fgd 1852 (last (:temp-all-vector-vector-h-signals temp-vars)) {:row :column})
-
-(row (fgd 1852 (last (:temp-all-vector-vector-h-signals temp-vars)) {:column :row}) 1)
-
-(mm
-  (fgd 1852 (last (:temp-all-vector-vector-h-signals temp-vars)))
-  (nth temp-matrix-only 2)
-  )
-
-(:temp-vector-matrix-delta temp-vars)
-
-(col (mm (nth temp-matrix-only 2)
-
-         ) 0)
-
-(mm (submatrix unit-matrix 0 0 100 1)
-    (nth (:temp-all-vector-vector-h-signals temp-vars) 3))
-
-(nth (:temp-all-vector-vector-h-signals temp-vars) 2)
-(:temp-all-vector-vector-h-gradients temp-vars)
-(:temp-all-vector-vector-h-signals temp-vars)
-
-(:temp-prev-delta-vector-matrix-delta temp-vars)
-
-(:layers-output-only temp-vars)
-
-(submatrix unit-matrix 0 0 100 1)
-(nth (:temp-all-vector-vector-h-signals temp-vars) 3)
-(nth temp-matrix-only 1)
-
-(prepare-identity-matrix 1)
-(nth (:temp-all-vector-vector-h-signals temp-vars) 3)
-( ncols (nth (:temp-all-vector-vector-h-signals temp-vars) 3))
-
-(mm
-  (nth (:temp-all-vector-vector-h-signals temp-vars) 3)
-  (submatrix unit-matrix 0 0 1852 1)
-  )
-
-  (prepare-identity-matrix 1852)
-
-(def pr (copy (prepare-identity-matrix 1852)))
-(-> pr)
-(axpy! (row (nth (:temp-all-vector-vector-h-signals temp-vars) 3) 0)
-       (dia pr))
-
-( (nth (:temp-all-vector-vector-h-signals temp-vars) 3) (dia (prepare-identity-matrix 1852)) )
-
-
-(nth (:temp-all-vector-vector-h-signals temp-vars) 2)
-(nth temp-matrix-only 1)
-
-(nth temp-matrix-only 2)
-
-(mm
-  (nth (:temp-all-vector-vector-h-signals temp-vars) 2)
-  (submatrix unit-matrix 0 0 1852 1)
-  )
-
-(quick-bench
-  (copy (prepare-zero-matrix 100))
-  )
-
-(def ttt (prepare-zero-matrix 100))
-
-(quick-bench
-  (entry! (dia ttt) 0)
-  )
-
-(:temp-prev-delta-vector-matrix-delta temp-vars)
-(:temp-all-vector-vector-h-signals temp-vars)
-
-(:temp-vector-matrix-delta-biases temp-vars)
-
-(nth (:temp-all-vector-vector-h-signals temp-vars) 2)
-
-(entry (row (last (:layers-output temp-vars)) 0) 0)
-(entry (row (last (:layers-output temp-vars)) 0) 1)
-(def pp (entry (row (last (:layers-output temp-vars)) 0) 1))
-
-(* (+ 1 pp) (- 1 pp))
-
-
-
-(sum (last (:temp-all-vector-vector-h-signals temp-vars)))
-(entry (row (nth (:layers @mreza-nn) 2) 0) 0)
-(entry (row (nth (:layers @mreza-nn) 2) 0) 1)
-
-(:temp-all-vector-vector-h-signals temp-vars)
-(:temp-all-vector-vector-h-gradients temp-vars2)
-(:temp-vector-matrix-delta-biases temp-vars)
-(:temp-vector-matrix-delta temp-vars)
-(:temp-vector-matrix-delta temp-vars2)
-(:temp-prev-delta-vector-matrix-delta temp-vars)
-
-(:temp-vector-vector-h-signals-var1 temp-vars)
-(:temp-vector-vector-h-signals-var2 temp-vars)
-
-(:normalized-matrix input-trainig-dataset)
 
 
 (def mreza-nn2 (atom (create-network 64 [100 200 100] 1)))
@@ -254,8 +123,8 @@ master-prediction.example
 (:layers @mreza-nn)0
 
 (time (train-network @mreza-nn (:normalized-matrix input-trainig-dataset)
-                     (:normalized-matrix target-trainig-dataset) 100 20
-                     0.000157 0.9))
+                     (:normalized-matrix target-trainig-dataset) 500 10
+                     0.0157 0.9))
 ;; 0.00357
 ;; 0.0157
 ;; 0.00557
@@ -274,7 +143,6 @@ master-prediction.example
                  17 18.59090909 22 17.62029836 28.68181818 68 1002.318182])
 
 (def norm-in (normalize-input-vector input-test input-trainig-dataset))
-
 (def temp-variables (atom (create-temp-record @mreza-nn norm-in)))
 
 (with-progress-reporting
