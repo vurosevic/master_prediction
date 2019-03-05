@@ -553,3 +553,15 @@ master-prediction.neuralnetwork
                           ))))]
     (->Neuronetwork layers
                     config)))
+
+(defn create-predict-file
+  [net input target filename]
+  (let [temp-variables (create-temp-record net input)
+        pred-values (restore-output-vector target (predict net input temp-variables))
+        values (restore-output-vector target (:normalized-matrix target))
+        count-values (dim pred-values)]
+    (doseq [x (range count-values)]
+      (write-file filename (str x "," (entry values x) "," (entry pred-values x) "\n"))
+      )
+    )
+  )
