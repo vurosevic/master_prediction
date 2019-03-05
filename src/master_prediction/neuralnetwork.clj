@@ -305,7 +305,6 @@ master-prediction.neuralnetwork
     )
   )
 
-;; novi nacin miniBatch
 (defn learning-once
   "learn network with one input vector"
   [network inputmtx targetmtx temp-vars speed-learning alpha]
@@ -451,6 +450,8 @@ master-prediction.neuralnetwork
   "learninig rate decay algorithm"
   [start-speed-learning decay-rate epoch-num]
   (/ start-speed-learning (+ 1 (* decay-rate epoch-num)))
+
+  ;; second way
   ;;(* start-speed-learning (Math/pow 0.95 epoch-num))
   )
 
