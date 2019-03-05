@@ -79,7 +79,7 @@
 
 ## License
 
-Copyright © 2018 Vladimir Urosevic
+Copyright © 2019 Vladimir Urosevic
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
