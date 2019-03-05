@@ -108,6 +108,6 @@ master-prediction.example
   (restore-output-vector target-test-dataset (:normalized-matrix target-test-dataset))
   )
 
-
+;; create file for drawing diagram of convergence
 (create-predict-file @mreza-nn (:normalized-matrix input-test-dataset)
                      target-test-dataset "test-file.csv")
