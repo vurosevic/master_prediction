@@ -175,9 +175,6 @@ master-prediction.data
 (def norm-input-all (append-biases-to-normalized-matrix (create-norm-matrix input-matrix-all)))
 (def norm-target-all (create-norm-matrix target-matrix-all))
 
-(-> norm-input-all)
-(-> norm-target-all)
-
 (defn get-training-dataset
   "take training dataset by begining"
   [input-data percent]
