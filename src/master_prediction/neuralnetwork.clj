@@ -305,6 +305,7 @@ master-prediction.neuralnetwork
     )
   )
 
+;; novi nacin miniBatch
 (defn learning-once
   "learn network with one input vector"
   [network inputmtx targetmtx temp-vars speed-learning alpha]
@@ -450,8 +451,6 @@ master-prediction.neuralnetwork
   "learninig rate decay algorithm"
   [start-speed-learning decay-rate epoch-num]
   (/ start-speed-learning (+ 1 (* decay-rate epoch-num)))
-
-  ;; second way
   ;;(* start-speed-learning (Math/pow 0.95 epoch-num))
   )
 
@@ -554,15 +553,3 @@ master-prediction.neuralnetwork
                           ))))]
     (->Neuronetwork layers
                     config)))
-
-(defn create-predict-file
-  [net input target filename]
-  (let [temp-variables (create-temp-record net input)
-        pred-values (restore-output-vector target (predict net input temp-variables))
-        values (restore-output-vector target (:normalized-matrix target))
-        count-values (dim pred-values)]
-    (doseq [x (range count-values)]
-      (write-file filename (str x "," (entry values x) "," (entry pred-values x) "\n"))
-      )
-    )
-  )
