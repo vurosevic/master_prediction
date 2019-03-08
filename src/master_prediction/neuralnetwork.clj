@@ -98,8 +98,8 @@ master-prediction.neuralnetwork
 
 (defn layer-output
   "generate output from layer"
-  [input weights result o-func]
-  (mm! 1.0 weights input 0.0 result)
+  [input layer result o-func]
+  (mm! 1.0 layer input 0.0 result)
   (o-func (submatrix result 0 0 (dec (mrows result)) (ncols result))))
 
 (defn dtanh!
