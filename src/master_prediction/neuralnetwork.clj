@@ -17,10 +17,6 @@ master-prediction.neuralnetwork
                          temp-all-vector-o-signals2         ;; matrix, row=1, output gradient, dim number of output neurons
                          temp-all-vector-vector-h-signals   ;; output gradient, dim number of output neurons
 
-                         temp-vector-o-gradients            ;; matrix, row=1, output gradient, dim number of output neurons
-                         temp-vector-o-gradients2           ;; matrix, row=1, output gradient, dim number of output neurons
-                         temp-vector-vector-h-gradients     ;; output gradient, dim number of output neurons
-
                          temp-vector-matrix-delta           ;; delta weights for layers
                          temp-vector-matrix-gradient        ;; temp for calc weights for layers
                          temp-vector-matrix-delta-biases    ;; delta biases for layers
@@ -221,9 +217,6 @@ master-prediction.neuralnetwork
         temp-all-vector-o-signals2 (fge net-output-dim input-vec-dim (repeat net-output-dim 0))
         temp-all-vector-vector-h-signals (vec (for [x tmp2] (fge x input-vec-dim (repeat x 0))))
 
-        temp-vector-o-gradients (fge net-output-dim 1 (repeat net-output-dim 0))
-        temp-vector-o-gradients2 (fge net-output-dim 1 (repeat net-output-dim 0))
-        temp-vector-vector-h-gradients (vec (for [x tmp2] (fge x 1 (repeat x 0))))
         temp-vector-matrix-delta (vec (concat (for [x (take (dec (count (map vector tmp1 tmp2))) (map vector tmp1 tmp2))]
                                                 (conj (#(create-null-matrix (first x) (second x)))))
                                               (vector (create-null-matrix (first (last (map vector tmp1 tmp2)))
@@ -255,9 +248,6 @@ master-prediction.neuralnetwork
                     temp-all-vector-o-signals
                     temp-all-vector-o-signals2
                     temp-all-vector-vector-h-signals
-                    temp-vector-o-gradients
-                    temp-vector-o-gradients2
-                    temp-vector-vector-h-gradients
                     temp-vector-matrix-delta
                     temp-vector-matrix-gradient
                     temp-vector-matrix-delta-biases
@@ -305,7 +295,6 @@ master-prediction.neuralnetwork
     )
   )
 
-;; novi nacin miniBatch
 (defn learning-once
   "learn network with one input vector"
   [network inputmtx targetmtx temp-vars speed-learning alpha]
@@ -480,7 +469,6 @@ master-prediction.neuralnetwork
               second-seg (second (nth mini-batch-seg x))
               input-segment (submatrix input-mtx 0 first-seg col-count (- second-seg first-seg))
               target-segment (submatrix target-mtx 0 first-seg tcol-count (- second-seg first-seg))
-              ;;temp-vars (create-temp-record network input-segment)
               temp-vars (if (= x 0)
                           ftemp-vars
                           ltemp-vars)]
@@ -498,11 +486,11 @@ master-prediction.neuralnetwork
                     ))]
             (do
               (println y ": " mape-value)
-              (if (< mape-value @early-stopping-value)
-                (do
-                  (save-network-to-file network "early-stopping-net-test.csv")
-                  (reset! early-stopping-value mape-value)))
-              (write-file "konvergencija_minibatch_test.csv" (str y "," mape-value "\n"))
+              ;;(if (< mape-value @early-stopping-value)
+              ;;  (do
+              ;;    (save-network-to-file network "early-stopping-net-test.csv")
+              ;;    (reset! early-stopping-value mape-value)))
+              ;;(write-file "konvergencija_minibatch_test.csv" (str y "," mape-value "\n"))
               ))))
 
       )))
